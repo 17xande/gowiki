@@ -1,61 +1,72 @@
 package main
 
 import (
-	"errors"
 	"html/template"
-	"io/ioutil"
 	"net/http"
 	"regexp"
+
+	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type Page struct {
 	Title string
 	Body  []byte
+	Url   string
 }
 
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
 var templates = template.Must(template.ParseFiles("templates/edit.html", "templates/view.html"))
 
 func (p *Page) save() error {
-	filename := p.Title + ".txt"
-	return ioutil.WriteFile("data/"+filename, p.Body, 0600)
+	session := dbConnect()
+	defer session.Close()
+
+	collection := session.DB("test").C("pages")
+	_, err := collection.Upsert(bson.M{"url": p.Url}, &Page{p.Title, p.Body, p.Url})
+	return err
 }
 
-func loadPage(title string) (*Page, error) {
-	filename := "data/" + title + ".txt"
-	body, err := ioutil.ReadFile(filename)
+func loadPage(url string) (*Page, error) {
+	session := dbConnect()
+	defer session.Close()
+
+	collection := session.DB("test").C("pages")
+	page := Page{}
+	err := collection.Find(bson.M{"url": url}).One(&page)
+
 	if err != nil {
 		return nil, err
 	}
-	return &Page{Title: title, Body: body}, nil
+	return &page, nil
 }
 
-func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
-	p, err := loadPage(title)
+func viewHandler(w http.ResponseWriter, r *http.Request, url string) {
+	p, err := loadPage(url)
 	if err != nil {
-		http.Redirect(w, r, "/edit/"+title, http.StatusFound)
+		http.Redirect(w, r, "/edit/"+url, http.StatusFound)
 		return
 	}
 	renderTemplate(w, "view", p)
 }
 
-func editHandler(w http.ResponseWriter, r *http.Request, title string) {
-	p, err := loadPage(title)
+func editHandler(w http.ResponseWriter, r *http.Request, url string) {
+	p, err := loadPage(url)
 	if err != nil {
-		p = &Page{Title: title}
+		p = &Page{Url: url}
 	}
 	renderTemplate(w, "edit", p)
 }
 
-func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
+func saveHandler(w http.ResponseWriter, r *http.Request, url string) {
 	body := r.FormValue("body")
-	p := &Page{Title: title, Body: []byte(body)}
+	p := &Page{Title: url, Body: []byte(body), Url: url}
 	err := p.save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/view/"+title, http.StatusFound)
+	http.Redirect(w, r, "/view/"+url, http.StatusFound)
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
@@ -63,15 +74,6 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-}
-
-func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
-	m := validPath.FindStringSubmatch(r.URL.Path)
-	if m == nil {
-		http.NotFound(w, r)
-		return "", errors.New("Invalid Page Title")
-	}
-	return m[2], nil // The title is the second subexpression
 }
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
@@ -83,6 +85,16 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 		}
 		fn(w, r, m[2])
 	}
+}
+
+func dbConnect() *mgo.Session {
+	session, err := mgo.Dial("localhost")
+	if err != nil {
+		panic(err)
+	}
+	session.SetMode(mgo.Monotonic, true)
+
+	return session
 }
 
 func main() {
