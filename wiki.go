@@ -18,7 +18,7 @@ type Page struct {
 }
 
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
-var templates = template.Must(template.ParseFiles("templates/edit.html", "templates/view.html"))
+var templates = template.Must(template.ParseGlob("templates/*"))
 
 func (p *Page) save() error {
 	session := dbConnect()
@@ -41,6 +41,14 @@ func loadPage(url string) (*Page, error) {
 		return nil, err
 	}
 	return &page, nil
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	page := Page{}
+	err := templates.ExecuteTemplate(w, "index.html", page)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request, url string) {
@@ -101,6 +109,7 @@ func dbConnect() *mgo.Session {
 
 func main() {
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("./public"))))
+	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
