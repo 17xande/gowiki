@@ -3,12 +3,14 @@ package main
 import (
 	"html/template"
 	"net/http"
+	"os"
 	"regexp"
 
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
+// Page
 type Page struct {
 	Title string
 	Body  []byte
@@ -98,9 +100,15 @@ func dbConnect() *mgo.Session {
 }
 
 func main() {
+	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("./public"))))
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
 
-	http.ListenAndServe(":8080", nil)
+	p := os.Getenv("PORT")
+	if p == "" {
+		p = ":8080"
+	}
+
+	http.ListenAndServe(p, nil)
 }
