@@ -1,6 +1,30 @@
+{{define "head"}}
+  <title>SCMS|Edit {{.Title}}</title>
+  <link rel="stylesheet" href="/public/dependencies/css/quill.snow.css">
+{{end}}
+
+{{define "body"}}
 <h1>Editing {{.Title}}</h1>
 
-<form action="/save/{{.Url}}" method="POST">
-  <div><textarea name="body" cols="80" rows="20">{{printf "%s" .Body}}</textarea></div>
-  <div><input type="submit" value="Save"></div>
+<form id="frmContent" action="/save/{{.URL}}" method="POST">
+  <div id="txaBody">{{.Body}}</div>
+  <input id="hdnBody" type="hidden" name="body">
+  <div><input id="btnSave" type="submit" value="Save"></div>
 </form>
+{{end}}
+
+{{define "scripts"}}
+  <script src="/public/dependencies/js/quill.min.js"></script>
+  <script>
+    let quill = new Quill('#txaBody', {
+      placeholder: "Enter text here",
+      theme: 'snow'
+    });
+
+    let hdnBody = document.getElementById("hdnBody");
+    $("#frmContent").submit(function() {
+      hdnBody.value = quill.container.children[0].innerHTML;
+      return true;
+    });
+  </script>
+{{end}}

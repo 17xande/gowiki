@@ -10,22 +10,31 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// Page
+// Page represents any webpage on the site
 type Page struct {
 	Title string
-	Body  []byte
-	Url   string
+	Body  template.HTML
+	URL   string
 }
 
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
-var templates = template.Must(template.ParseGlob("templates/*"))
+
+// var templates = template.Must(template.ParseGlob("templates/*"))
+var templates = make(map[string]*template.Template)
+
+func initi() {
+	temp := "templates/"
+	templates["index.html"] = template.Must(template.ParseFiles(temp+"index.html", temp+"base.html"))
+	templates["edit.html"] = template.Must(template.ParseFiles(temp+"edit.html", temp+"base.html"))
+	templates["view.html"] = template.Must(template.ParseFiles(temp+"view.html", temp+"base.html"))
+}
 
 func (p *Page) save() error {
 	session := dbConnect()
 	defer session.Close()
 
 	collection := session.DB("test").C("pages")
-	_, err := collection.Upsert(bson.M{"url": p.Url}, &Page{p.Title, p.Body, p.Url})
+	_, err := collection.Upsert(bson.M{"url": p.URL}, &Page{p.Title, p.Body, p.URL})
 	return err
 }
 
@@ -45,7 +54,8 @@ func loadPage(url string) (*Page, error) {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	page := Page{}
-	err := templates.ExecuteTemplate(w, "index.html", page)
+	// err := templates.ExecuteTemplate(w, "index.html", page)
+	err := templates["index.html"].ExecuteTemplate(w, "base", page)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -63,14 +73,14 @@ func viewHandler(w http.ResponseWriter, r *http.Request, url string) {
 func editHandler(w http.ResponseWriter, r *http.Request, url string) {
 	p, err := loadPage(url)
 	if err != nil {
-		p = &Page{Url: url}
+		p = &Page{URL: url}
 	}
 	renderTemplate(w, "edit", p)
 }
 
 func saveHandler(w http.ResponseWriter, r *http.Request, url string) {
 	body := r.FormValue("body")
-	p := &Page{Title: url, Body: []byte(body), Url: url}
+	p := &Page{Title: url, Body: template.HTML(body), URL: url}
 	err := p.save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -80,7 +90,8 @@ func saveHandler(w http.ResponseWriter, r *http.Request, url string) {
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-	err := templates.ExecuteTemplate(w, tmpl+".html", p)
+	// err := templates.ExecuteTemplate(w, tmpl+".html", p)
+	err := templates[tmpl+".html"].ExecuteTemplate(w, "base", p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -108,6 +119,8 @@ func dbConnect() *mgo.Session {
 }
 
 func main() {
+	initi()
+
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("./public"))))
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/view/", makeHandler(viewHandler))
