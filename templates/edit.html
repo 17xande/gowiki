@@ -7,21 +7,30 @@
 <h1>Editing {{.Title}}</h1>
 
 <form id="frmContent" action="/save/{{.URL}}" method="POST">
-  <div id="txaBody">{{.Body}}</div>
+  <div id="divQuill">{{.Body}}</div>
   <input id="hdnBody" type="hidden" name="body">
-  <div><input id="btnSave" type="submit" value="Save"></div>
+  <input id="btnSave" type="submit" value="Save">
+  <button id="btnCancel">Cancel</button>
 </form>
 {{end}}
 
 {{define "scripts"}}
   <script src="/public/dependencies/js/quill.min.js"></script>
   <script>
-    let quill = new Quill('#txaBody', {
+    let quill = new Quill('#divQuill', {
       placeholder: "Enter text here",
       theme: 'snow'
     });
 
     let hdnBody = document.getElementById("hdnBody");
+    let btnCancel = document.getElementById("btnCancel");
+    let title = window.location.pathname.slice(window.location.pathname.lastIndexOf('/'));
+
+    // redirect to the view page
+    $(btnCancel).on("click", function() {
+      window.location.href = "/view" + title;
+    });
+
     $("#frmContent").submit(function() {
       hdnBody.value = quill.container.children[0].innerHTML;
       return true;

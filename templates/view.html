@@ -1,11 +1,20 @@
 {{define "head"}}
   <title>SCMS|View {{.Title}}</title>
+  <link rel="stylesheet" href="/public/dependencies/css/quill.bubble.css">
 {{end}}
 
 {{define "body"}}
 <h1>{{.Title}}</h1>
 <p>[<a href="/edit/{{.Title}}">edit</a>]</p>
-<div>{{.Body}}</div>
+<div id="divQuill">{{.Body}}</div>
 {{end}}
 
-{{define "scripts"}}{{end}}
+{{define "scripts"}}
+  <script src="/public/dependencies/js/quill.min.js"></script>
+  <script>
+    let quill = new Quill('#divQuill', {
+      readOnly: true,
+      theme: 'bubble'
+    });
+  </script>
+{{end}}
