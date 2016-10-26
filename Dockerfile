@@ -1,4 +1,4 @@
-FROM golang:1.6-onbuild
+FROM golang:latest
 
 # create a directory inside the container to store the app. Make it the working directory
 RUN mkdir -p /go/src/gowiki
@@ -15,7 +15,8 @@ RUN go install -v
 ENV PORT 8080
 EXPOSE 8080
 
-# Default command runs app
-CMD ["gowiki"]
+# build app
+CMD ["go build"]
 
-EXPOSE 8080
+# Default command runs app
+CMD ["./gowiki"]
