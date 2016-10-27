@@ -4,13 +4,11 @@
 
 {{define "body"}}
   <h1>Users:</h1>
-  <div>
-    <ul>
-      {{range $index, $user := .}}
-        <li><a href="/users/{{$user.ID.Hex}}">{{$user.Name}}</a></li>
-      {{end}}
-    </ul>
-  </div>
+  <ul>
+    {{range $index, $user := .}}
+      <li><a href="/users/edit/{{$user.ID.Hex}}">{{$user.Name}}</a></li>
+    {{end}}
+  </ul>
 {{end}}
 
 {{define "scripts"}}{{end}}

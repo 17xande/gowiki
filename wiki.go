@@ -7,13 +7,6 @@ import (
 	"regexp"
 )
 
-// Page represents any webpage on the site
-type Page struct {
-	Title string
-	Body  template.HTML
-	URL   string
-}
-
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
 
 // var templates = template.Must(template.ParseGlob("templates/*"))
@@ -29,9 +22,12 @@ func initi() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	page := Page{}
-	// err := templates.ExecuteTemplate(w, "index.html", page)
-	err := templates["index.html"].ExecuteTemplate(w, "base", page)
+	pages, err := findAllDocs()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	err = templates["index.html"].ExecuteTemplate(w, "base", pages)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -93,7 +89,8 @@ func main() {
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
 	http.HandleFunc("/users/", userHandler)
-	http.HandleFunc("/users/Edit", userEditHandler)
+	http.HandleFunc("/users/edit/", userEditHandler)
+	http.HandleFunc("/users/save/", userSaveHandler)
 
 	p := os.Getenv("PORT")
 	if p == "" {

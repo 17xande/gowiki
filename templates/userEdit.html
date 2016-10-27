@@ -1,17 +1,18 @@
 {{define "head"}}
-  <title>SCMS: New User</title>
+  <title>SCMS: Edit User</title>
 {{end}}
 
 {{define "body"}}
-  <h1>New User</h1>
-  <form id="frmUser" action="/users/new" method="POST">
+  <h1>{{ if .exists }}Edit{{ else }}New{{end}} User</h1>
+  <form id="frmUser" action="/users/save/{{.user.ID.Hex}}" method="POST">
+    <hidden id="hdnId" name="userId" value="{{.user.ID.Hex}}"></hidden>
     <label for="txtName">Name:</label>
-    <input id="txtName" name="name" type="text">
+    <input id="txtName" name="name" type="text" value="{{.user.Name}}">
     <label for="txtEmail">Email:</label>
-    <input id="txtEmail" name="email" type="text">
+    <input id="txtEmail" name="email" type="text" value="{{.user.Email}}">
     <label for="txtPassword">Password:</label>
     <input id="txtPassword" name="password" type="password">
-    <input type="submit" value="Login">
+    <input type="submit" value="Save">
   </form>
 {{end}}
 

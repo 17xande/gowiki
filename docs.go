@@ -1,29 +1,26 @@
 package main
 
 import (
-	"gopkg.in/mgo.v2"
+	"html/template"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
-const host = "localhost"
-const db = "test"
-
-func dbConnect() *mgo.Session {
-	session, err := mgo.Dial(host)
-	if err != nil {
-		panic(err)
-	}
-	session.SetMode(mgo.Monotonic, true)
-
-	return session
+// Page represents any webpage on the site
+type Page struct {
+	Title string
+	Body  template.HTML
+	URL   string
 }
+
+const pageCol = "pages"
 
 // Save saves the page to the database
 func (p *Page) Save() error {
 	session := dbConnect()
 	defer session.Close()
 
-	collection := session.DB(db).C("pages")
+	collection := session.DB(db).C(pageCol)
 	_, err := collection.Upsert(bson.M{"url": p.URL}, &Page{p.Title, p.Body, p.URL})
 	return err
 }
@@ -33,7 +30,7 @@ func LoadPage(url string) (*Page, error) {
 	session := dbConnect()
 	defer session.Close()
 
-	collection := session.DB(db).C("pages")
+	collection := session.DB(db).C(pageCol)
 	page := Page{}
 	err := collection.Find(bson.M{"url": url}).One(&page)
 
@@ -41,4 +38,18 @@ func LoadPage(url string) (*Page, error) {
 		return nil, err
 	}
 	return &page, nil
+}
+
+func findAllDocs() (*[]Page, error) {
+	session := dbConnect()
+	defer session.Close()
+
+	collection := session.DB(db).C(pageCol)
+	var pages []Page
+	err := collection.Find(nil).All(&pages)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pages, nil
 }

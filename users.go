@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"path"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -14,7 +15,7 @@ type User struct {
 	Password string        `json:"password" bson:"password"`
 }
 
-const col = "users"
+const userCol = "users"
 
 // UserHandler handles any requests made to the user interface
 func userHandler(w http.ResponseWriter, r *http.Request) {
@@ -24,24 +25,71 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = templates["users.html"].ExecuteTemplate(w, "base", users)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func userEditHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates["userNew.html"].ExecuteTemplate(w, "base", nil)
+	var user *User
+	var err error
+	exists := false
+
+	_, id := path.Split(r.URL.Path)
+
+	if len(id) > 0 {
+		user, err = findUser(id)
+		exists = true
+	} else {
+		user = &User{}
+	}
+
+	result := map[string]interface{}{
+		"user":   user,
+		"exists": exists,
+	}
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		panic(err)
 	}
+
+	err = templates["userEdit.html"].ExecuteTemplate(w, "base", result)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		panic(err)
+	}
+}
+
+func userSaveHandler(w http.ResponseWriter, r *http.Request) {
+	user := &User{
+		Name:     r.FormValue("name"),
+		Email:    r.FormValue("email"),
+		Password: r.FormValue("password"),
+	}
+
+	_, id := path.Split(r.URL.Path)
+	// id := r.FormValue("userId")
+
+	if id != "" {
+		user.ID = bson.ObjectIdHex(id)
+	} else {
+		user.ID = bson.NewObjectId()
+	}
+
+	err := user.saveUser()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/users/", http.StatusFound)
 }
 
 func findAllUsers() (*[]User, error) {
 	session := dbConnect()
 	defer session.Close()
 
-	collection := session.DB(db).C(col)
+	collection := session.DB(db).C(userCol)
 	var users []User
 	err := collection.Find(nil).All(&users)
 	if err != nil {
@@ -56,9 +104,9 @@ func findUser(idHex string) (*User, error) {
 	session := dbConnect()
 	defer session.Close()
 
-	collection := session.DB(db).C(col)
+	collection := session.DB(db).C(userCol)
 	var user User
-	err := collection.Find(bson.M{"_id": id}).One(&user)
+	err := collection.FindId(id).One(&user)
 
 	if err != nil {
 		return nil, err
@@ -71,7 +119,7 @@ func (user *User) saveUser() error {
 	session := dbConnect()
 	defer session.Close()
 
-	collection := session.DB(db).C(col)
+	collection := session.DB(db).C(userCol)
 
 	info, err := collection.UpsertId(user.ID, &user)
 
