@@ -5,13 +5,15 @@
 {{define "body"}}
   <h1>{{ if .exists }}Edit{{ else }}New{{end}} User</h1>
   <form id="frmUser" action="/users/save/{{.user.ID.Hex}}" method="POST">
-    <hidden id="hdnId" name="userId" value="{{.user.ID.Hex}}"></hidden>
+    <input id="hdnId" name="userId" type="hidden" value="{{.user.ID.Hex}}">
     <label for="txtName">Name:</label>
     <input id="txtName" name="name" type="text" value="{{.user.Name}}">
     <label for="txtEmail">Email:</label>
     <input id="txtEmail" name="email" type="text" value="{{.user.Email}}">
     <label for="txtPassword">Password:</label>
     <input id="txtPassword" name="password" type="password">
+    <label for="cbxAdmin">Admin:</label>
+    <input id="cbxAdmin" name="admin" type="checkbox" {{ if .user.Admin }} checked {{end}}>
     <input type="submit" value="Save">
   </form>
 {{end}}

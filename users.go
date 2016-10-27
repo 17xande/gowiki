@@ -13,6 +13,7 @@ type User struct {
 	Name     string        `json:"name" bson:"name"`
 	Email    string        `json:"email" bson:"email"`
 	Password string        `json:"password" bson:"password"`
+	Admin    bool          `json:"admin" bson:"admin"`
 }
 
 const userCol = "users"
@@ -57,15 +58,17 @@ func userEditHandler(w http.ResponseWriter, r *http.Request) {
 	err = templates["userEdit.html"].ExecuteTemplate(w, "base", result)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		panic(err)
 	}
 }
 
 func userSaveHandler(w http.ResponseWriter, r *http.Request) {
+	admin := r.FormValue("admin") == "on"
+
 	user := &User{
 		Name:     r.FormValue("name"),
 		Email:    r.FormValue("email"),
 		Password: r.FormValue("password"),
+		Admin:    admin,
 	}
 
 	_, id := path.Split(r.URL.Path)
@@ -83,6 +86,13 @@ func userSaveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/users/", http.StatusFound)
+}
+
+func userLoginHandler(w http.ResponseWriter, r *http.Request) {
+	err := templates["login.html"].ExecuteTemplate(w, "base", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func findAllUsers() (*[]User, error) {

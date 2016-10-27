@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+
+	"github.com/gorilla/context"
 )
 
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
@@ -19,6 +21,7 @@ func initi() {
 	templates["view.html"] = template.Must(template.ParseFiles(temp+"view.html", temp+"base.html"))
 	templates["users.html"] = template.Must(template.ParseFiles(temp+"users.html", temp+"base.html"))
 	templates["userEdit.html"] = template.Must(template.ParseFiles(temp+"userEdit.html", temp+"base.html"))
+	templates["login.html"] = template.Must(template.ParseFiles(temp+"login.html", temp+"base.html"))
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -47,11 +50,26 @@ func editHandler(w http.ResponseWriter, r *http.Request, url string) {
 	if err != nil {
 		p = &Page{URL: url}
 	}
-	renderTemplate(w, "edit", p)
+	users, err := findAllUsers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	result := map[string]interface{}{
+		"page":  p,
+		"users": users,
+	}
+
+	err = templates["edit.html"].ExecuteTemplate(w, "base", result)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func saveHandler(w http.ResponseWriter, r *http.Request, url string) {
 	body := r.FormValue("body")
+	// permissions := r.FormValue("permissions")
+
 	p := &Page{Title: url, Body: template.HTML(body), URL: url}
 	err := p.Save()
 	if err != nil {
@@ -85,6 +103,7 @@ func main() {
 
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("./public"))))
 	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/login", userLoginHandler)
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
@@ -97,5 +116,5 @@ func main() {
 		p = ":8080"
 	}
 
-	http.ListenAndServe(p, nil)
+	http.ListenAndServe(p, context.ClearHandler(http.DefaultServeMux))
 }

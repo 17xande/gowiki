@@ -1,17 +1,24 @@
 {{define "head"}}
-  <title>SCMS|Edit {{.Title}}</title>
+  <title>SCMS|Edit {{.page.Title}}</title>
   <link rel="stylesheet" href="/public/dependencies/css/quill.snow.css">
 {{end}}
 
 {{define "body"}}
 <h1>Editing {{.Title}}</h1>
 
-<form id="frmContent" action="/save/{{.URL}}" method="POST">
-  <div id="divQuill">{{.Body}}</div>
+<form id="frmContent" action="/save/{{.page.URL}}" method="POST">
+  <div id="divQuill">{{.page.Body}}</div>
   <input id="hdnBody" type="hidden" name="body">
   <input id="btnSave" type="submit" value="Save">
+  <input id="hdnPermissions" type="hidden" name="permissions">
   <button id="btnCancel">Cancel</button>
 </form>
+<h3>Permissions:</h3>
+<ul id="ulPermissions">
+  {{range $index, $user := .users}}
+    <label>{{$user.Name}}:<input type="checkbox" data-user-id="{{$user.ID.Hex}}"></label>
+  {{end}}
+</ul>
 {{end}}
 
 {{define "scripts"}}
@@ -33,6 +40,14 @@
 
     $("#frmContent").submit(function() {
       hdnBody.value = quill.container.children[0].innerHTML;
+      csvChecked = $("#ulPermissions")
+        .find("input:checked")
+        .map((index, element) => element.getAttribute("data-user-id"))
+        .get()
+        .join();
+
+      hdnPermissions.value = csvChecked
+
       return true;
     });
   </script>
