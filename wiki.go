@@ -5,9 +5,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // Page represents any webpage on the site
@@ -27,29 +24,8 @@ func initi() {
 	templates["index.html"] = template.Must(template.ParseFiles(temp+"index.html", temp+"base.html"))
 	templates["edit.html"] = template.Must(template.ParseFiles(temp+"edit.html", temp+"base.html"))
 	templates["view.html"] = template.Must(template.ParseFiles(temp+"view.html", temp+"base.html"))
-}
-
-func (p *Page) save() error {
-	session := dbConnect()
-	defer session.Close()
-
-	collection := session.DB("test").C("pages")
-	_, err := collection.Upsert(bson.M{"url": p.URL}, &Page{p.Title, p.Body, p.URL})
-	return err
-}
-
-func loadPage(url string) (*Page, error) {
-	session := dbConnect()
-	defer session.Close()
-
-	collection := session.DB("test").C("pages")
-	page := Page{}
-	err := collection.Find(bson.M{"url": url}).One(&page)
-
-	if err != nil {
-		return nil, err
-	}
-	return &page, nil
+	templates["users.html"] = template.Must(template.ParseFiles(temp+"users.html", temp+"base.html"))
+	templates["userEdit.html"] = template.Must(template.ParseFiles(temp+"userEdit.html", temp+"base.html"))
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +38,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request, url string) {
-	p, err := loadPage(url)
+	p, err := LoadPage(url)
 	if err != nil {
 		http.Redirect(w, r, "/edit/"+url, http.StatusFound)
 		return
@@ -71,7 +47,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request, url string) {
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request, url string) {
-	p, err := loadPage(url)
+	p, err := LoadPage(url)
 	if err != nil {
 		p = &Page{URL: url}
 	}
@@ -81,7 +57,7 @@ func editHandler(w http.ResponseWriter, r *http.Request, url string) {
 func saveHandler(w http.ResponseWriter, r *http.Request, url string) {
 	body := r.FormValue("body")
 	p := &Page{Title: url, Body: template.HTML(body), URL: url}
-	err := p.save()
+	err := p.Save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -108,16 +84,6 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 	}
 }
 
-func dbConnect() *mgo.Session {
-	session, err := mgo.Dial("localhost")
-	if err != nil {
-		panic(err)
-	}
-	session.SetMode(mgo.Monotonic, true)
-
-	return session
-}
-
 func main() {
 	initi()
 
@@ -126,6 +92,8 @@ func main() {
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
+	http.HandleFunc("/users/", userHandler)
+	http.HandleFunc("/users/Edit", userEditHandler)
 
 	p := os.Getenv("PORT")
 	if p == "" {

@@ -1,0 +1,18 @@
+{{define "head"}}
+  <title>SCMS: New User</title>
+{{end}}
+
+{{define "body"}}
+  <h1>New User</h1>
+  <form id="frmUser" action="/users/new" method="POST">
+    <label for="txtName">Name:</label>
+    <input id="txtName" name="name" type="text">
+    <label for="txtEmail">Email:</label>
+    <input id="txtEmail" name="email" type="text">
+    <label for="txtPassword">Password:</label>
+    <input id="txtPassword" name="password" type="password">
+    <input type="submit" value="Login">
+  </form>
+{{end}}
+
+{{define "scripts"}}{{end}}
