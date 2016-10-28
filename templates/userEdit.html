@@ -12,6 +12,8 @@
     <input id="txtEmail" name="email" type="text" value="{{.user.Email}}">
     <label for="txtPassword">Password:</label>
     <input id="txtPassword" name="password" type="password">
+    <label for="numLevel">Level:</label>
+    <input id="numLevel" name="level" type="number" value="{{.user.Level}}">
     <label for="cbxAdmin">Admin:</label>
     <input id="cbxAdmin" name="admin" type="checkbox" {{ if .user.Admin }} checked {{end}}>
     <input type="submit" value="Save">

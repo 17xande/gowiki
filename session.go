@@ -8,34 +8,76 @@ import (
 
 var store = sessions.NewCookieStore([]byte("scms-foh-the-win"))
 
-// SessionCreate handles login sessions in the site
-func SessionCreate(w http.ResponseWriter, r *http.Request, user *User) {
-	// Get a session - Get() always returns a session, even if empty
-	session, err := store.Get(r, "login")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+// UserSession stores the current user session
+var UserSession *sessions.Session
 
-	// Set some session values
-	session.Values["user"] = user
-	session.Save(r, w)
+// SessionInit initialises the sessio options
+func SessionInit() {
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400, // One day
+		HttpOnly: true,
+	}
 }
 
-// LoginTest redirects to the login page if no session is found
-func LoginTest(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		session, err := store.Get(r, "login")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+// SessionCreate handles login sessions in the site
+func SessionCreate(w http.ResponseWriter, r *http.Request, user *User) {
+	getSession(w, r)
 
-		if session.Values["user"] == nil {
+	// Set some session values
+	UserSession.Values["id"] = user.ID.Hex()
+	UserSession.Values["name"] = user.Name
+	UserSession.Values["email"] = user.Email
+	UserSession.Values["level"] = user.Level
+	UserSession.Values["admin"] = user.Admin
+	UserSession.Save(r, w)
+}
+
+// SessionDelete removes the current user session
+func SessionDelete(w http.ResponseWriter, r *http.Request) {
+	sess, _ := store.Get(r, "user")
+	sess.Options.MaxAge = -1
+	sess.Save(r, w)
+}
+
+func levelCheck(w http.ResponseWriter, r *http.Request, u User, p Page) bool {
+	if u.Level < p.Level {
+		UserSession.AddFlash("Sorry. You're not allowed to view that page")
+		return false
+	}
+
+	return true
+}
+
+// SessionHandler redirects to the login page if no session is found
+func SessionHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		getSession(w, r)
+
+		if UserSession.Values["id"] == nil {
 			http.Redirect(w, r, "/login", http.StatusFound)
 			return
 		}
 
 		fn(w, r)
+	}
+}
+
+// LoginTest is a non-handler verson of LoginTestHandler
+// func LoginTest(w http.ResponseWriter, r *http.Request) {
+// 	getSession(w, r)
+
+// 	if UserSession.Values["id"] == nil {
+// 		http.Redirect(w, r, "/login", http.StatusFound)
+// 	}
+// }
+
+// getSession Retrieves session if there is one
+func getSession(w http.ResponseWriter, r *http.Request) {
+	// Get a session - Get() always returns a session, even if empty
+	var err error
+	UserSession, err = store.Get(r, "user")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

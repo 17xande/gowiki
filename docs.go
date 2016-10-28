@@ -8,9 +8,11 @@ import (
 
 // Page represents any webpage on the site
 type Page struct {
-	Title string
-	Body  template.HTML
-	URL   string
+	// ID    bson.ObjectId `json:"id" bson:"_id"`
+	Title string        `json:"title" bson:"title"`
+	Body  template.HTML `json:"body" bson:"body"`
+	URL   string        `json:"url" bson:"url"`
+	Level int           `json:"level" bson:"level"`
 }
 
 const pageCol = "pages"
@@ -21,7 +23,7 @@ func (p *Page) Save() error {
 	defer session.Close()
 
 	collection := session.DB(db).C(pageCol)
-	_, err := collection.Upsert(bson.M{"url": p.URL}, &Page{p.Title, p.Body, p.URL})
+	_, err := collection.Upsert(bson.M{"url": p.URL}, p)
 	return err
 }
 

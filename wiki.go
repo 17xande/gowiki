@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/gorilla/context"
 )
@@ -25,14 +26,6 @@ func initi() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	if r.FormValue("email") != "" {
-		user, err := authenticateUser(r.FormValue("email"), r.FormValue("password"))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		SessionCreate(w, r, user)
-	}
-
 	pages, err := findAllDocs()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -77,9 +70,10 @@ func editHandler(w http.ResponseWriter, r *http.Request, url string) {
 func saveHandler(w http.ResponseWriter, r *http.Request, url string) {
 	body := r.FormValue("body")
 	// permissions := r.FormValue("permissions")
+	level, err := strconv.Atoi(r.FormValue("level"))
 
-	p := &Page{Title: url, Body: template.HTML(body), URL: url}
-	err := p.Save()
+	p := &Page{Title: url, Body: template.HTML(body), URL: url, Level: level}
+	err = p.Save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -108,10 +102,12 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 
 func main() {
 	initi()
+	SessionInit()
 
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("./public"))))
-	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/", SessionHandler(indexHandler))
 	http.HandleFunc("/login", userLoginHandler)
+	http.HandleFunc("/logout", userLogoutHandler)
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))

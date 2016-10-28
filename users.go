@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"path"
 
+	"strconv"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -13,6 +15,7 @@ type User struct {
 	Name     string        `json:"name" bson:"name"`
 	Email    string        `json:"email" bson:"email"`
 	Password string        `json:"password" bson:"password"`
+	Level    int           `json:"level" bson:"level"`
 	Admin    bool          `json:"admin" bson:"admin"`
 }
 
@@ -63,11 +66,13 @@ func userEditHandler(w http.ResponseWriter, r *http.Request) {
 
 func userSaveHandler(w http.ResponseWriter, r *http.Request) {
 	admin := r.FormValue("admin") == "on"
+	level, err := strconv.Atoi(r.FormValue("level"))
 
 	user := &User{
 		Name:     r.FormValue("name"),
 		Email:    r.FormValue("email"),
 		Password: r.FormValue("password"),
+		Level:    level,
 		Admin:    admin,
 	}
 
@@ -80,7 +85,7 @@ func userSaveHandler(w http.ResponseWriter, r *http.Request) {
 		user.ID = bson.NewObjectId()
 	}
 
-	err := user.saveUser()
+	err = user.saveUser()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -89,10 +94,26 @@ func userSaveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func userLoginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("email") != "" {
+		user, _ := authenticateUser(r.FormValue("email"), r.FormValue("password"))
+		// TODO: Handle error here
+		SessionCreate(w, r, user)
+	}
+
+	if len(UserSession.Values) > 0 {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	err := templates["login.html"].ExecuteTemplate(w, "base", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func userLogoutHandler(w http.ResponseWriter, r *http.Request) {
+	SessionDelete(w, r)
+	http.Redirect(w, r, "/login", http.StatusFound)
 }
 
 func findAllUsers() (*[]User, error) {
