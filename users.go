@@ -125,6 +125,22 @@ func findUser(idHex string) (*User, error) {
 	return &user, nil
 }
 
+func authenticateUser(email string, password string) (*User, error) {
+	session := dbConnect()
+	defer session.Close()
+
+	collection := session.DB(db).C(userCol)
+	var user User
+	err := collection.Find(bson.M{"email": email, "password": password}).One(&user)
+
+	// if there's an error or no user was found
+	if err != nil || user.ID.Hex() == "" {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (user *User) saveUser() error {
 	session := dbConnect()
 	defer session.Close()

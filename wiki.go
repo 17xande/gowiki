@@ -25,6 +25,14 @@ func initi() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("email") != "" {
+		user, err := authenticateUser(r.FormValue("email"), r.FormValue("password"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		SessionCreate(w, r, user)
+	}
+
 	pages, err := findAllDocs()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

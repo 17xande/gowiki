@@ -8,8 +8,8 @@ import (
 
 var store = sessions.NewCookieStore([]byte("scms-foh-the-win"))
 
-// SessionHandler handles login sessions in the site
-func SessionHandler(w http.ResponseWriter, r *http.Request, user User) {
+// SessionCreate handles login sessions in the site
+func SessionCreate(w http.ResponseWriter, r *http.Request, user *User) {
 	// Get a session - Get() always returns a session, even if empty
 	session, err := store.Get(r, "login")
 	if err != nil {
