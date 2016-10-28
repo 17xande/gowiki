@@ -108,12 +108,12 @@ func main() {
 	http.HandleFunc("/", SessionHandler(indexHandler))
 	http.HandleFunc("/login", userLoginHandler)
 	http.HandleFunc("/logout", userLogoutHandler)
-	http.HandleFunc("/view/", makeHandler(viewHandler))
-	http.HandleFunc("/edit/", makeHandler(editHandler))
-	http.HandleFunc("/save/", makeHandler(saveHandler))
-	http.HandleFunc("/users/", userHandler)
-	http.HandleFunc("/users/edit/", userEditHandler)
-	http.HandleFunc("/users/save/", userSaveHandler)
+	http.HandleFunc("/view/", SessionHandler(makeHandler(viewHandler)))
+	http.HandleFunc("/edit/", SessionHandler(makeHandler(editHandler)))
+	http.HandleFunc("/save/", SessionHandler(makeHandler(saveHandler)))
+	http.HandleFunc("/users/", SessionHandler(userHandler))
+	http.HandleFunc("/users/edit/", SessionHandler(userEditHandler))
+	http.HandleFunc("/users/save/", SessionHandler(userSaveHandler))
 
 	p := os.Getenv("PORT")
 	if p == "" {
