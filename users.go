@@ -19,6 +19,45 @@ type User struct {
 	Admin    bool          `json:"admin" bson:"admin"`
 }
 
+// Permission defines additional user permissions for document
+type Permission struct {
+	UserID bson.ObjectId `json:"userId" bson:"userId"`
+	DocID  bson.ObjectId `json:"docId" bson:"docId"`
+	List   bool          `json:"list" bson:"list"`
+	Read   bool          `json:"read" bson:"read"`
+	Write  bool          `json:"write" bson:"write"`
+}
+
+// Save the current permission
+func (p *Permission) Save() error {
+	session := dbConnect()
+	defer session.Close()
+
+	collection := session.DB(db).C("permissions")
+	IDs := bson.M{"userId": p.UserID, "docId": p.DocID}
+	_, err := collection.UpsertId(IDs, p)
+
+	return err
+}
+
+func permissionsSave(userIds []string, docID bson.ObjectId) error {
+	var err error
+	usersLen := len(userIds)
+	for i := 0; i < usersLen; i++ {
+		p := &Permission{
+			UserID: bson.ObjectIdHex(userIds[i]),
+			DocID:  docID,
+			List:   true,
+			Read:   true,
+			Write:  true,
+		}
+
+		p.Save()
+	}
+
+	return err
+}
+
 const userCol = "users"
 
 // UserHandler handles any requests made to the user interface

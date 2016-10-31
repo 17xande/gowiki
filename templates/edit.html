@@ -35,11 +35,11 @@
 
     let hdnBody = document.getElementById("hdnBody");
     let btnCancel = document.getElementById("btnCancel");
-    let title = window.location.pathname.slice(window.location.pathname.lastIndexOf('/'));
+    let id = window.location.pathname.slice(window.location.pathname.lastIndexOf('/'));
 
     // redirect to the view page
     $(btnCancel).on("click", function() {
-      window.location.href = "/view" + title;
+      window.location.href = "/view" + id;
     });
 
     $("#frmContent").submit(function() {

@@ -110,14 +110,19 @@ func saveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 	id := bson.ObjectIdHex(idHex)
-	// permissions := r.FormValue("permissions")
+	// userIds := strings.Split(r.FormValue("permissions"), ",")
 	level, err := strconv.Atoi(r.FormValue("level"))
 
 	p := &Page{ID: id, Title: title, Body: template.HTML(body), Level: level}
 	err = p.Save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
+
+	// err = permissionsSave(userIds, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
 	http.Redirect(w, r, "/view/"+idHex, http.StatusFound)
 }
