@@ -28,10 +28,11 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	err = templates["users.html"].ExecuteTemplate(w, "base", users)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	data := map[string]interface{}{
+		"users": users,
 	}
+
+	renderTemplate(w, r, "users", data)
 }
 
 func userEditHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,9 +49,12 @@ func userEditHandler(w http.ResponseWriter, r *http.Request) {
 		user = &User{}
 	}
 
-	result := map[string]interface{}{
-		"user":   user,
-		"exists": exists,
+	tmpData := map[string]interface{}{
+		"user":         user,
+		"exists":       exists,
+		"flashError":   UserSession.Flashes("error"),
+		"flashWarning": UserSession.Flashes("warning"),
+		"flashAlert":   UserSession.Flashes("alert"),
 	}
 
 	if err != nil {
@@ -58,7 +62,7 @@ func userEditHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	err = templates["userEdit.html"].ExecuteTemplate(w, "base", result)
+	err = templates["userEdit.html"].ExecuteTemplate(w, "base", tmpData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -94,18 +98,23 @@ func userSaveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func userLoginHandler(w http.ResponseWriter, r *http.Request) {
+	data := make(map[string]interface{})
+
 	if r.FormValue("email") != "" {
-		user, _ := authenticateUser(r.FormValue("email"), r.FormValue("password"))
-		// TODO: Handle error here
-		SessionCreate(w, r, user)
+		user, err := authenticateUser(r.FormValue("email"), r.FormValue("password"))
+		if err != nil {
+			data["flashWarning"] = "User not found"
+		} else {
+			SessionCreate(w, r, user)
+		}
 	}
 
-	if len(UserSession.Values) > 0 {
+	if UserSession != nil && UserSession.Values["id"] != nil {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	err := templates["login.html"].ExecuteTemplate(w, "base", nil)
+	err := templates["login.html"].ExecuteTemplate(w, "base", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

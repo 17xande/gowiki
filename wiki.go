@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strconv"
 
 	"github.com/gorilla/context"
 )
@@ -23,6 +22,7 @@ func initi() {
 	templates["users.html"] = template.Must(template.ParseFiles(temp+"users.html", temp+"base.html"))
 	templates["userEdit.html"] = template.Must(template.ParseFiles(temp+"userEdit.html", temp+"base.html"))
 	templates["login.html"] = template.Must(template.ParseFiles(temp+"login.html", temp+"base.html"))
+	templates["permissions.html"] = template.Must(template.ParseFiles(temp+"permissions.html", temp+"base.html"))
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,59 +31,22 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	err = templates["index.html"].ExecuteTemplate(w, "base", pages)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	data := map[string]interface{}{
+		"pages": pages,
 	}
+
+	renderTemplate(w, r, "index", data)
 }
 
-func viewHandler(w http.ResponseWriter, r *http.Request, url string) {
-	p, err := LoadPage(url)
-	if err != nil {
-		http.Redirect(w, r, "/edit/"+url, http.StatusFound)
-		return
-	}
-	renderTemplate(w, "view", p)
-}
+func renderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, data map[string]interface{}) {
+	data["flashSuccess"] = UserSession.Flashes("success")
+	data["flashInfo"] = UserSession.Flashes("info")
+	data["flashWarning"] = UserSession.Flashes("warning")
+	data["flashDanger"] = UserSession.Flashes("danger")
+	// Session must be saved to empty the flash messages
+	UserSession.Save(r, w)
 
-func editHandler(w http.ResponseWriter, r *http.Request, url string) {
-	p, err := LoadPage(url)
-	if err != nil {
-		p = &Page{URL: url}
-	}
-	users, err := findAllUsers()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	result := map[string]interface{}{
-		"page":  p,
-		"users": users,
-	}
-
-	err = templates["edit.html"].ExecuteTemplate(w, "base", result)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func saveHandler(w http.ResponseWriter, r *http.Request, url string) {
-	body := r.FormValue("body")
-	// permissions := r.FormValue("permissions")
-	level, err := strconv.Atoi(r.FormValue("level"))
-
-	p := &Page{Title: url, Body: template.HTML(body), URL: url, Level: level}
-	err = p.Save()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	http.Redirect(w, r, "/view/"+url, http.StatusFound)
-}
-
-func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-	// err := templates.ExecuteTemplate(w, tmpl+".html", p)
-	err := templates[tmpl+".html"].ExecuteTemplate(w, "base", p)
+	err := templates[tmpl+".html"].ExecuteTemplate(w, "base", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

@@ -3,9 +3,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <!--TODO: find out what these tags mean-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!--TODO: find out what these tags mean-->
 
     <link rel="stylesheet" href="/public/dependencies/css/tether.min.css">
     <link rel="stylesheet" href="/public/dependencies/css/bootstrap-flex.min.css">
@@ -23,11 +23,38 @@
           <a href="/users/" class="nav-link">Users</a>
         </li>
         <li class="nav-item">
+          <a href="/permissions/" class="nav-link">Permissions</a>
+        </li>
+        <li class="nav-item">
           <a href="/logout" class="nav-link">Logout</a>
         </li>
       </ul>
     </nav>
    
+    {{if .flashSuccess}}
+    <div class="alert alert-success" role="alert">
+      <strong>Success!</strong> {{.flashSuccess}}
+    </div>
+    {{end}}
+   
+    {{if .flashInfo}}
+    <div class="alert alert-info" role="alert">
+      <strong>Info!</strong> {{.flashInfo}}
+    </div>
+    {{end}}
+   
+    {{if .flashWarning}}
+    <div class="alert alert-warning" role="alert">
+      <strong>Warning!</strong> {{.flashWarning}}
+    </div>
+    {{end}}
+
+    {{if .flashDanger}}
+    <div class="alert alert-danger" role="alert">
+      <strong>Danger!</strong> {{.flashDanger}}
+    </div>
+    {{end}}
+
     <div class="container-fluid">
       <div class="starter-template">
         {{template "body" .}}

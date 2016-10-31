@@ -2,13 +2,15 @@ package main
 
 import (
 	"html/template"
+	"net/http"
+	"strconv"
 
 	"gopkg.in/mgo.v2/bson"
 )
 
 // Page represents any webpage on the site
 type Page struct {
-	// ID    bson.ObjectId `json:"id" bson:"_id"`
+	ID    bson.ObjectId `json:"id" bson:"_id"`
 	Title string        `json:"title" bson:"title"`
 	Body  template.HTML `json:"body" bson:"body"`
 	URL   string        `json:"url" bson:"url"`
@@ -23,18 +25,19 @@ func (p *Page) Save() error {
 	defer session.Close()
 
 	collection := session.DB(db).C(pageCol)
-	_, err := collection.Upsert(bson.M{"url": p.URL}, p)
+	_, err := collection.UpsertId(p.ID, p)
 	return err
 }
 
 // LoadPage loads retrieves the page data from the database
-func LoadPage(url string) (*Page, error) {
+func LoadPage(idHex string) (*Page, error) {
+	id := bson.ObjectIdHex(idHex)
 	session := dbConnect()
 	defer session.Close()
 
 	collection := session.DB(db).C(pageCol)
 	page := Page{}
-	err := collection.Find(bson.M{"url": url}).One(&page)
+	err := collection.FindId(id).One(&page)
 
 	if err != nil {
 		return nil, err
@@ -54,4 +57,67 @@ func findAllDocs() (*[]Page, error) {
 	}
 
 	return &pages, nil
+}
+
+func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
+	p, err := LoadPage(id)
+
+	if err != nil {
+		http.Redirect(w, r, "/edit/", http.StatusFound)
+		return
+	}
+
+	if !levelCheck(w, r, p) {
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+
+	data := map[string]interface{}{
+		"page": p,
+	}
+
+	renderTemplate(w, r, "view", data)
+}
+
+func editHandler(w http.ResponseWriter, r *http.Request, id string) {
+	var p *Page
+	var err error
+
+	if id != "" {
+		p, err = LoadPage(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		if !levelCheck(w, r, p) {
+			http.Redirect(w, r, "/", http.StatusFound)
+		}
+	}
+
+	users, err := findAllUsers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	data := map[string]interface{}{
+		"page":  p,
+		"users": users,
+	}
+
+	renderTemplate(w, r, "edit", data)
+}
+
+func saveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
+	title := r.FormValue("title")
+	body := r.FormValue("body")
+	id := bson.ObjectIdHex(idHex)
+	// permissions := r.FormValue("permissions")
+	level, err := strconv.Atoi(r.FormValue("level"))
+
+	p := &Page{ID: id, Title: title, Body: template.HTML(body), Level: level}
+	err = p.Save()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/view/"+idHex, http.StatusFound)
 }
