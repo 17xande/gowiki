@@ -21,6 +21,7 @@ type User struct {
 
 // Permission defines additional user permissions for document
 type Permission struct {
+	// ID     bson.ObjectId `json:"id" bson:"_id"`
 	UserID bson.ObjectId `json:"userId" bson:"userId"`
 	DocID  bson.ObjectId `json:"docId" bson:"docId"`
 	List   bool          `json:"list" bson:"list"`
@@ -35,7 +36,7 @@ func (p *Permission) Save() error {
 
 	collection := session.DB(db).C("permissions")
 	IDs := bson.M{"userId": p.UserID, "docId": p.DocID}
-	_, err := collection.UpsertId(IDs, p)
+	_, err := collection.Upsert(IDs, p)
 
 	return err
 }
