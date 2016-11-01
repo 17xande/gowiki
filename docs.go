@@ -113,20 +113,31 @@ func editHandler(w http.ResponseWriter, r *http.Request, id string) {
 func saveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 	title := r.FormValue("title")
 	body := r.FormValue("body")
-	id := bson.ObjectIdHex(idHex)
 	// userIds := strings.Split(r.FormValue("permissions"), ",")
 	level, err := strconv.Atoi(r.FormValue("level"))
 
-	p := &Page{ID: id, Title: title, Body: template.HTML(body), Level: level}
+	p := &Page{
+		Title: title,
+		Body:  template.HTML(body),
+		Level: level,
+	}
+
+	if idHex != "" {
+		p.ID = bson.ObjectIdHex(idHex)
+	} else {
+		p.ID = bson.NewObjectId()
+	}
+
 	err = p.Save()
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	// err = permissionsSave(userIds, id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// }
 
-	http.Redirect(w, r, "/view/"+idHex, http.StatusFound)
+	http.Redirect(w, r, "/view/"+p.ID.Hex(), http.StatusFound)
 }
