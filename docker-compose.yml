@@ -2,6 +2,7 @@ version: "2"
 services:
   web:
     build: .
+    image: gowiki:latest
     depends_on:
       - mongo
     ports:
@@ -16,3 +17,5 @@ services:
       - mongo:/data/db
     ports:
       - "27017:27017"
+volumes:
+  mongo: {}
