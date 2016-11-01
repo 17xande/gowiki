@@ -4,6 +4,7 @@
 
 {{define "body"}}
   <h1>Users:</h1>
+  <a href="/users/edit">New User</a>
   <ul>
     {{range $index, $user := .users}}
       <li><a href="/users/edit/{{$user.ID.Hex}}">{{$user.Name}}</a></li>

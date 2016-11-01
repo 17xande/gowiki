@@ -64,32 +64,36 @@ const userCol = "users"
 // UserHandler handles any requests made to the user interface
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := findAllUsers()
+	user := getUserFromSession()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	data := map[string]interface{}{
 		"users": users,
+		"user":  user,
 	}
 
 	renderTemplate(w, r, "users", data)
 }
 
 func userEditHandler(w http.ResponseWriter, r *http.Request) {
-	var user *User
+	var editUser *User
+	user := getUserFromSession()
 	var err error
 	exists := false
 
 	_, id := path.Split(r.URL.Path)
 
 	if len(id) > 0 {
-		user, err = findUser(id)
+		editUser, err = findUser(id)
 		exists = true
 	} else {
-		user = &User{}
+		editUser = &User{}
 	}
 
 	tmpData := map[string]interface{}{
+		"editUser":     editUser,
 		"user":         user,
 		"exists":       exists,
 		"flashError":   UserSession.Flashes("error"),
@@ -163,6 +167,18 @@ func userLoginHandler(w http.ResponseWriter, r *http.Request) {
 func userLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	SessionDelete(w, r)
 	http.Redirect(w, r, "/login", http.StatusFound)
+}
+
+func getUserFromSession() *User {
+	user := &User{
+		ID:    bson.ObjectIdHex(UserSession.Values["id"].(string)),
+		Name:  UserSession.Values["name"].(string),
+		Email: UserSession.Values["email"].(string),
+		Level: UserSession.Values["level"].(int),
+		Admin: UserSession.Values["admin"].(bool),
+	}
+
+	return user
 }
 
 func findAllUsers() (*[]User, error) {

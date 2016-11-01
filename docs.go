@@ -61,6 +61,7 @@ func findAllDocs() (*[]Page, error) {
 
 func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	p, err := LoadPage(id)
+	user := getUserFromSession()
 
 	if err != nil {
 		http.Redirect(w, r, "/edit/", http.StatusFound)
@@ -73,6 +74,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 	data := map[string]interface{}{
 		"page": p,
+		"user": user,
 	}
 
 	renderTemplate(w, r, "view", data)
@@ -81,6 +83,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 func editHandler(w http.ResponseWriter, r *http.Request, id string) {
 	var p *Page
 	var err error
+	user := getUserFromSession()
 
 	if id != "" {
 		p, err = LoadPage(id)
@@ -101,6 +104,7 @@ func editHandler(w http.ResponseWriter, r *http.Request, id string) {
 	data := map[string]interface{}{
 		"page":  p,
 		"users": users,
+		"user":  user,
 	}
 
 	renderTemplate(w, r, "edit", data)

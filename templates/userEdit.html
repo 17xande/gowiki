@@ -4,19 +4,21 @@
 
 {{define "body"}}
   <h1>{{ if .exists }}Edit{{ else }}New{{end}} User</h1>
-  <form id="frmUser" action="/users/save/{{.user.ID.Hex}}" method="POST">
-    <input id="hdnId" name="userId" type="hidden" value="{{.user.ID.Hex}}">
+  <form id="frmUser" action="/users/save/{{.editUser.ID.Hex}}" method="POST">
+    <input id="hdnId" name="userId" type="hidden" value="{{.editUser.ID.Hex}}">
     <label for="txtName">Name:</label>
-    <input id="txtName" name="name" type="text" value="{{.user.Name}}">
+    <input id="txtName" name="name" type="text" value="{{.editUser.Name}}">
     <label for="txtEmail">Email:</label>
-    <input id="txtEmail" name="email" type="text" value="{{.user.Email}}">
+    <input id="txtEmail" name="email" type="text" value="{{.editUser.Email}}">
     <label for="txtPassword">Password:</label>
     <input id="txtPassword" name="password" type="password">
+    {{if .user.Admin}}
     <label for="numLevel">Level:</label>
-    <input id="numLevel" name="level" type="number" value="{{.user.Level}}">
+    <input id="numLevel" name="level" type="number" value="{{.editUser.Level}}">
     <label for="cbxAdmin">Admin:</label>
-    <input id="cbxAdmin" name="admin" type="checkbox" {{ if .user.Admin }} checked {{end}}>
+    <input id="cbxAdmin" name="admin" type="checkbox" {{ if .editUser.Admin }} checked {{end}}>
     <input type="submit" value="Save">
+    {{end}}
   </form>
 {{end}}
 

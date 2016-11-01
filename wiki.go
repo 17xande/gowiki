@@ -26,6 +26,7 @@ func initi() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession()
 	pages, err := findAllDocs()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -33,6 +34,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := map[string]interface{}{
 		"pages": pages,
+		"user":  user,
 	}
 
 	renderTemplate(w, r, "index", data)

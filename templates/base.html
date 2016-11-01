@@ -19,15 +19,22 @@
         <li class="nav-item active">
           <a href="/" class="nav-link">Home</a>
         </li>
+        {{if .user.Admin}}
         <li class="nav-item">
           <a href="/users/" class="nav-link">Users</a>
         </li>
         <li class="nav-item">
           <a href="/permissions/" class="nav-link">Permissions</a>
         </li>
+        {{end}}
+        <li class="nav-item">
+          <a href="/users/edit/{{.user.ID.Hex}}" class="nav-link">Account</a>
+        </li>
+        {{if .user}}
         <li class="nav-item">
           <a href="/logout" class="nav-link">Logout</a>
         </li>
+        {{end}}
       </ul>
     </nav>
    
