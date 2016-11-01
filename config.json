@@ -1,0 +1,8 @@
+{
+  "database": {
+    "host": "localhost",
+    "name": "rivers",
+    "username": "rivscms",
+    "password": "rivscms"
+  }
+}
