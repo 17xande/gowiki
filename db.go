@@ -3,7 +3,7 @@ package main
 import mgo "gopkg.in/mgo.v2"
 
 const host = "localhost"
-const db = "test"
+const db = "rivers"
 
 func dbConnect() *mgo.Session {
 	session, err := mgo.Dial(host)

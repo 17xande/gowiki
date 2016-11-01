@@ -86,7 +86,7 @@ func main() {
 
 	p := os.Getenv("PORT")
 	if p == "" {
-		p = ":8080"
+		p = ":80"
 	}
 
 	http.ListenAndServe(p, context.ClearHandler(http.DefaultServeMux))
