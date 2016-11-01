@@ -5,6 +5,7 @@
 {{define "body"}}
   <h1>Welcome to the Sensitive Content Management System (SCMS)</h1>
   <h2>Available documents:</h2>
+  <a href="/edit/">New Document</a>
   <ul>
     {{range $index, $doc := .pages}}
       <li><a href="/view/{{$doc.ID.Hex}}">{{$doc.Title}}</a></li>

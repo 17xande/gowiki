@@ -39,7 +39,12 @@
 
     // redirect to the view page
     $(btnCancel).on("click", function() {
-      window.location.href = "/view" + id;
+      if (id == "/") {
+        window.location.href = "/";
+      } else {        
+        window.location.href = "/view" + id;
+      }
+      return false
     });
 
     $("#frmContent").submit(function() {

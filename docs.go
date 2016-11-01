@@ -81,7 +81,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request, id string) {
-	var p *Page
+	p := &Page{}
 	var err error
 	user := getUserFromSession()
 

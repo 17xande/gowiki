@@ -4,12 +4,13 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"path"
 	"regexp"
 
 	"github.com/gorilla/context"
 )
 
-var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
+var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9])$")
 
 // var templates = template.Must(template.ParseGlob("templates/*"))
 var templates = make(map[string]*template.Template)
@@ -56,12 +57,15 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, data ma
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := validPath.FindStringSubmatch(r.URL.Path)
-		if m == nil {
-			http.NotFound(w, r)
-			return
-		}
-		fn(w, r, m[2])
+		// m := validPath.FindStringSubmatch(r.URL.Path)
+		// if m == nil {
+		// 	http.NotFound(w, r)
+		// 	return
+		// }
+		// fn(w, r, m[2])
+		_, id := path.Split(r.URL.Path)
+
+		fn(w, r, id)
 	}
 }
 
