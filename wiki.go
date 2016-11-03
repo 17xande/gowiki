@@ -94,13 +94,13 @@ func main() {
 
 	p := os.Getenv("PORT")
 	if p == "" {
-		p = ":80"
+		p = ":8080"
 	}
 
 	err := http.ListenAndServe(p, context.ClearHandler(http.DefaultServeMux))
 
 	if err != nil {
 		fmt.Println("Error: Could not start server\n", err)
-		errorLogger.Print("Could not start server", err)
+		errorLogger.Print("Could not start server ", err)
 	}
 }
