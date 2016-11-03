@@ -97,6 +97,7 @@ func main() {
 		p = ":8080"
 	}
 
+	fmt.Println("Server listening on port", p)
 	err := http.ListenAndServe(p, context.ClearHandler(http.DefaultServeMux))
 
 	if err != nil {

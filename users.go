@@ -6,6 +6,7 @@ import (
 
 	"strconv"
 
+	"golang.org/x/crypto/scrypt"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -14,7 +15,7 @@ type User struct {
 	ID       bson.ObjectId `json:"id" bson:"_id"`
 	Name     string        `json:"name" bson:"name"`
 	Email    string        `json:"email" bson:"email"`
-	Password string        `json:"password" bson:"password"`
+	Password []byte        `json:"password" bson:"password"`
 	Level    int           `json:"level" bson:"level"`
 	Admin    bool          `json:"admin" bson:"admin"`
 }
@@ -116,16 +117,25 @@ func userSaveHandler(w http.ResponseWriter, r *http.Request) {
 	admin := r.FormValue("admin") == "on"
 	level, err := strconv.Atoi(r.FormValue("level"))
 
-	user := &User{
-		Name:     r.FormValue("name"),
-		Email:    r.FormValue("email"),
-		Password: r.FormValue("password"),
-		Level:    level,
-		Admin:    admin,
+	if err != nil {
+		errorLogger.Print("Could not convert 'level' to int. ", err)
 	}
 
+	user := &User{
+		Name:  r.FormValue("name"),
+		Email: r.FormValue("email"),
+		Level: level,
+		Admin: admin,
+	}
+
+	err = user.hashPassword(r.FormValue("password"))
+
+	if err != nil {
+		errorLogger.Print("Could not hash user's password. ", err)
+	}
+
+	// we can ignore the directory result of this function
 	_, id := path.Split(r.URL.Path)
-	// id := r.FormValue("userId")
 
 	if id != "" {
 		user.ID = bson.ObjectIdHex(id)
@@ -135,31 +145,50 @@ func userSaveHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = user.saveUser()
 	if err != nil {
+		errorLogger.Print("Could not save user. ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	infoLogger.Print("User saved: ", user.Name)
 	http.Redirect(w, r, "/users/", http.StatusFound)
 }
 
 func userLoginHandler(w http.ResponseWriter, r *http.Request) {
 	data := make(map[string]interface{})
+	var err error
+	var user *User
+	var found bool
 
-	if r.FormValue("email") != "" {
-		user, err := authenticateUser(r.FormValue("email"), r.FormValue("password"))
+	// handle login form submit
+	if r.FormValue("email") != "" && r.FormValue("password") != "" {
+		user = &User{
+			Email: r.FormValue("email"),
+		}
+		user.hashPassword(r.FormValue("password"))
+		found, err = user.authenticate()
 		if err != nil {
+			errorLogger.Print("Problem while looking for user in database. ", err)
+		}
+
+		if !found {
 			data["flashWarning"] = "User not found"
+			infoLogger.Print("Failed user login attempt: {email: " + user.Email + "}")
 		} else {
+			infoLogger.Print("Successful user login: {email: " + user.Email + "}")
 			SessionCreate(w, r, user)
 		}
 	}
 
+	// handle if a user is already logged in
 	if UserSession != nil && UserSession.Values["id"] != nil {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	err := templates["login.html"].ExecuteTemplate(w, "base", data)
+	err = templates["login.html"].ExecuteTemplate(w, "base", data)
 	if err != nil {
+		errorLogger.Print("Trouble handling login page render. ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -211,20 +240,18 @@ func findUser(idHex string) (*User, error) {
 	return &user, nil
 }
 
-func authenticateUser(email string, password string) (*User, error) {
+func (user *User) authenticate() (found bool, err error) {
 	session := dbConnect()
 	defer session.Close()
 
 	collection := session.DB(db).C(userCol)
-	var user User
-	err := collection.Find(bson.M{"email": email, "password": password}).One(&user)
+	err = collection.Find(bson.M{
+		"email":    user.Email,
+		"password": user.Password,
+	}).One(&user)
 
-	// if there's an error or no user was found
-	if err != nil || user.ID.Hex() == "" {
-		return nil, err
-	}
-
-	return &user, nil
+	found = user.ID.Hex() != ""
+	return found, err
 }
 
 func (user *User) saveUser() error {
@@ -240,5 +267,14 @@ func (user *User) saveUser() error {
 		user.ID = info.UpsertedId.(bson.ObjectId)
 	}
 
+	return err
+}
+
+func (user *User) hashPassword(pass string) (err error) {
+	var key []byte
+	// TODO: Move the salt into a non-committed file so that it does not end up on github
+	salt := []byte("You are the salt of the earth. But if the salt loses its saltiness, how can it be made salty again?" + user.Email)
+	key, err = scrypt.Key([]byte(user.Password), salt, 16384, 8, 1, 32)
+	user.Password = key
 	return err
 }
