@@ -2,10 +2,13 @@ package main
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"path"
 	"regexp"
+
+	"fmt"
 
 	"github.com/gorilla/context"
 )
@@ -72,6 +75,11 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 func main() {
 	initi()
 	SessionInit()
+	session := dbConnect()
+	defer session.Close()
+
+	errorLogger = log.New(&MongoWriter{session, "error"}, "", log.Lshortfile)
+	infoLogger = log.New(&MongoWriter{session, "info"}, "", log.Lshortfile)
 
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("./public"))))
 	http.HandleFunc("/", SessionHandler(indexHandler))
@@ -89,5 +97,10 @@ func main() {
 		p = ":80"
 	}
 
-	http.ListenAndServe(p, context.ClearHandler(http.DefaultServeMux))
+	err := http.ListenAndServe(p, context.ClearHandler(http.DefaultServeMux))
+
+	if err != nil {
+		fmt.Println("Error: Could not start server\n", err)
+		errorLogger.Print("Could not start server", err)
+	}
 }

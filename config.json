@@ -1,8 +1,16 @@
 {
-  "database": {
-    "host": "localhost",
-    "name": "rivers",
-    "username": "rivscms",
-    "password": "rivscms"
+  "databases": {
+    "app": {
+      "host": "localhost",
+      "name": "scms",
+      "username": "scms",
+      "password": "scms"
+    },
+    "log": {
+      "host": "localhost",
+      "name": "scms_log",
+      "username": "scms_log",
+      "password": "scms_log"
+    }
   }
 }

@@ -1,13 +1,21 @@
 package main
 
 import (
+	"log"
+	"time"
+
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 const host = "localhost"
-const db = "rivers"
+const db = "scms"
+const dbLog = "scms_log"
 
-var db1 DB
+var (
+	errorLogger *log.Logger
+	infoLogger  *log.Logger
+)
 
 // DB defines the database config options
 type DB struct {
@@ -15,6 +23,38 @@ type DB struct {
 	Name     string
 	Username string
 	Password string
+}
+
+// MongoWriter writes logs to the database
+type MongoWriter struct {
+	sess       *mgo.Session
+	collection string
+}
+
+func (mw *MongoWriter) Write(p []byte) (n int, err error) {
+	var data bson.M
+
+	if mw.collection == "error" { // error logging
+		// TODO: implement stacktrace logging
+		data = bson.M{
+			"timestamp": time.Now(),
+			"msg":       string(p),
+			"stack":     "",
+		}
+	} else { // info logging
+		data = bson.M{
+			"timestamp": time.Now(),
+			"msg":       string(p),
+		}
+	}
+
+	c := mw.sess.DB(dbLog).C(mw.collection)
+	err = c.Insert(data)
+
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 func dbConnect() *mgo.Session {
