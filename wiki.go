@@ -18,7 +18,7 @@ var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9])$")
 // var templates = template.Must(template.ParseGlob("templates/*"))
 var templates = make(map[string]*template.Template)
 
-func initi() {
+func init() {
 	temp := "templates/"
 	templates["index.html"] = template.Must(template.ParseFiles(temp+"index.html", temp+"base.html"))
 	templates["edit.html"] = template.Must(template.ParseFiles(temp+"edit.html", temp+"base.html"))
@@ -73,7 +73,6 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 }
 
 func main() {
-	initi()
 	SessionInit()
 	session := dbConnect()
 	defer session.Close()
@@ -91,6 +90,9 @@ func main() {
 	http.HandleFunc("/users/", SessionHandler(userHandler))
 	http.HandleFunc("/users/edit/", SessionHandler(userEditHandler))
 	http.HandleFunc("/users/save/", SessionHandler(userSaveHandler))
+	// Handlers without security for adding the first user
+	// http.HandleFunc("/users/edit/", userEditHandler)
+	// http.HandleFunc("/users/save/", userSaveHandler)
 
 	p := os.Getenv("PORT")
 	if p == "" {

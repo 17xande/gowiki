@@ -6,7 +6,7 @@
 {{define "body"}}
 <h1>{{.page.Title}}</h1>
 <p>[<a href="/edit/{{.page.ID.Hex}}">Edit</a>]</p>
-<div id="divQuill">{{.page.Body}}</div>
+<div id="divQuill">{{.body}}</div>
 {{end}}
 
 {{define "scripts"}}

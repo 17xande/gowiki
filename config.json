@@ -12,5 +12,9 @@
       "username": "scms_log",
       "password": "scms_log"
     }
+  },
+  "secrets": {
+    "password": "You are the salt of the earth. But if the salt loses its saltiness, how can it be made salty again?",
+    "document": "Take these documents, both the sealed and unsealed copies of the deed of purchase, and put them in a clay jar so they will last a long time."
   }
 }

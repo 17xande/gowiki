@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -54,6 +55,10 @@ func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
+
+	// Print to console for debugging
+	fmt.Println(string(p))
+
 	return len(p), nil
 }
 

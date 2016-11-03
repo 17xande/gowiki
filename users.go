@@ -80,7 +80,8 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 
 func userEditHandler(w http.ResponseWriter, r *http.Request) {
 	var editUser *User
-	user := getUserFromSession()
+	// user := getUserFromSession()
+	var user User
 	var err error
 	exists := false
 
@@ -198,16 +199,14 @@ func userLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusFound)
 }
 
-func getUserFromSession() *User {
-	user := &User{
+func getUserFromSession() (user *User) {
+	return &User{
 		ID:    bson.ObjectIdHex(UserSession.Values["id"].(string)),
 		Name:  UserSession.Values["name"].(string),
 		Email: UserSession.Values["email"].(string),
 		Level: UserSession.Values["level"].(int),
 		Admin: UserSession.Values["admin"].(bool),
 	}
-
-	return user
 }
 
 func findAllUsers() (*[]User, error) {
