@@ -28,6 +28,7 @@ func main() {
 	http.HandleFunc("/users/", models.SessionHandler(models.UserHandler))
 	http.HandleFunc("/users/edit/", models.SessionHandler(models.UserEditHandler))
 	http.HandleFunc("/users/save/", models.SessionHandler(models.UserSaveHandler))
+	http.HandleFunc("/folders/", models.SessionHandler(models.FolderHandler))
 	// Handlers without security for adding the first user
 	// http.HandleFunc("/users/edit/", userEditHandler)
 	// http.HandleFunc("/users/save/", userSaveHandler)

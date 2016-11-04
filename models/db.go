@@ -26,6 +26,11 @@ func init() {
 	InfoLogger = log.New(&MongoWriter{"info"}, "", log.Lshortfile)
 }
 
+// MongoDB is an implementation that talks to an external mongodb
+// type MongoDB struct {
+// 	sess *mgo.Session
+// }
+
 // DB defines the database config options
 type DB struct {
 	Host     string
@@ -38,6 +43,14 @@ type DB struct {
 type MongoWriter struct {
 	collection string
 }
+
+// func NewMongoDB(dbConf DB) (*MongoDB, error) {
+// 	s, err := mgo.Dial(dbConf.Host)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &MongoDB{sess: s}, nil
+// }
 
 func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 	var data bson.M

@@ -98,7 +98,7 @@ func ViewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	var body template.HTML
 	d, err := loadPage(id)
 	if err != nil {
-		ErrorLogger.Print("Page not found. id: "+id, err)
+		ErrorLogger.Print("Document not found. id: "+id, err)
 		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
 		http.Redirect(w, r, "/", http.StatusFound)
 		return

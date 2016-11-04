@@ -67,7 +67,10 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := findAllUsers()
 	user := getUserFromSession()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		ErrorLogger.Print("Error trying to find all users: \n", err)
+		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
 	}
 
 	data := map[string]interface{}{
@@ -212,18 +215,17 @@ func getUserFromSession() (user *User) {
 	}
 }
 
-func findAllUsers() (*[]User, error) {
+func findAllUsers() (users *[]User, err error) {
 	session := dbConnect()
 	defer session.Close()
 
 	collection := session.DB(db).C(userCol)
-	var users []User
-	err := collection.Find(nil).All(&users)
+	err = collection.Find(nil).All(&users)
 	if err != nil {
 		return nil, err
 	}
 
-	return &users, nil
+	return users, nil
 }
 
 func findUser(idHex string) (*User, error) {
