@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"fmt"
@@ -9,14 +9,22 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-const host = "localhost"
-const db = "scms"
-const dbLog = "scms_log"
-
 var (
-	errorLogger *log.Logger
-	infoLogger  *log.Logger
+	db string
+	// ErrorLogger logs errors into the database
+	ErrorLogger *log.Logger
+	// InfoLogger logs infos into the database
+	InfoLogger *log.Logger
 )
+
+func init() {
+	Conf = &Config{}
+	Conf.Load()
+	db = Conf.Databases["app"].Name
+
+	ErrorLogger = log.New(&MongoWriter{"error"}, "", log.Lshortfile)
+	InfoLogger = log.New(&MongoWriter{"info"}, "", log.Lshortfile)
+}
 
 // DB defines the database config options
 type DB struct {
@@ -28,7 +36,6 @@ type DB struct {
 
 // MongoWriter writes logs to the database
 type MongoWriter struct {
-	sess       *mgo.Session
 	collection string
 }
 
@@ -49,7 +56,10 @@ func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 		}
 	}
 
-	c := mw.sess.DB(dbLog).C(mw.collection)
+	sess := dbConnect()
+	defer sess.Close()
+
+	c := sess.DB(Conf.Databases["log"].Name).C(mw.collection)
 	err = c.Insert(data)
 
 	if err != nil {
@@ -63,7 +73,7 @@ func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 }
 
 func dbConnect() *mgo.Session {
-	session, err := mgo.Dial(host)
+	session, err := mgo.Dial(Conf.Databases["app"].Host)
 	if err != nil {
 		panic(err)
 	}

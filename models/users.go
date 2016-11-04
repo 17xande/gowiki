@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"net/http"
@@ -31,7 +31,7 @@ type Permission struct {
 }
 
 // Save the current permission
-func (p *Permission) Save() error {
+func (p *Permission) save() error {
 	session := dbConnect()
 	defer session.Close()
 
@@ -54,7 +54,7 @@ func permissionsSave(userIds []string, docID bson.ObjectId) error {
 			Write:  true,
 		}
 
-		p.Save()
+		p.save()
 	}
 
 	return err
@@ -63,7 +63,7 @@ func permissionsSave(userIds []string, docID bson.ObjectId) error {
 const userCol = "users"
 
 // UserHandler handles any requests made to the user interface
-func userHandler(w http.ResponseWriter, r *http.Request) {
+func UserHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := findAllUsers()
 	user := getUserFromSession()
 	if err != nil {
@@ -75,10 +75,11 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		"user":  user,
 	}
 
-	renderTemplate(w, r, "users", data)
+	RenderTemplate(w, r, "users", data)
 }
 
-func userEditHandler(w http.ResponseWriter, r *http.Request) {
+// UserEditHandler handles the edit user page
+func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 	var editUser *User
 	user := getUserFromSession()
 	var err error
@@ -113,12 +114,13 @@ func userEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func userSaveHandler(w http.ResponseWriter, r *http.Request) {
+// UserSaveHandler handles the save user page
+func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 	admin := r.FormValue("admin") == "on"
 	level, err := strconv.Atoi(r.FormValue("level"))
 
 	if err != nil {
-		errorLogger.Print("Could not convert 'level' to int. ", err)
+		ErrorLogger.Print("Could not convert 'level' to int. ", err)
 	}
 
 	user := &User{
@@ -131,7 +133,7 @@ func userSaveHandler(w http.ResponseWriter, r *http.Request) {
 	err = user.hashPassword(r.FormValue("password"))
 
 	if err != nil {
-		errorLogger.Print("Could not hash user's password. ", err)
+		ErrorLogger.Print("Could not hash user's password. ", err)
 	}
 
 	// we can ignore the directory result of this function
@@ -145,16 +147,17 @@ func userSaveHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = user.saveUser()
 	if err != nil {
-		errorLogger.Print("Could not save user. ", err)
+		ErrorLogger.Print("Could not save user. ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	infoLogger.Print("User saved: ", user.Name)
+	InfoLogger.Print("User saved: ", user.Name)
 	http.Redirect(w, r, "/users/", http.StatusFound)
 }
 
-func userLoginHandler(w http.ResponseWriter, r *http.Request) {
+// UserLoginHandler handles login attempts
+func UserLoginHandler(w http.ResponseWriter, r *http.Request) {
 	data := make(map[string]interface{})
 	var err error
 	var user *User
@@ -168,14 +171,14 @@ func userLoginHandler(w http.ResponseWriter, r *http.Request) {
 		user.hashPassword(r.FormValue("password"))
 		found, err = user.authenticate()
 		if err != nil {
-			errorLogger.Print("Problem while looking for user in database. ", err)
+			ErrorLogger.Print("Problem while looking for user in database. ", err)
 		}
 
 		if !found {
 			data["flashWarning"] = "User not found"
-			infoLogger.Print("Failed user login attempt: {email: " + user.Email + "}")
+			InfoLogger.Print("Failed user login attempt: {email: " + user.Email + "}")
 		} else {
-			infoLogger.Print("Successful user login: {email: " + user.Email + "}")
+			InfoLogger.Print("Successful user login: {email: " + user.Email + "}")
 			SessionCreate(w, r, user)
 		}
 	}
@@ -188,12 +191,13 @@ func userLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = templates["login.html"].ExecuteTemplate(w, "base", data)
 	if err != nil {
-		errorLogger.Print("Trouble handling login page render. ", err)
+		ErrorLogger.Print("Trouble handling login page render. ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func userLogoutHandler(w http.ResponseWriter, r *http.Request) {
+// UserLogoutHandler handles logouts
+func UserLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	SessionDelete(w, r)
 	http.Redirect(w, r, "/login", http.StatusFound)
 }

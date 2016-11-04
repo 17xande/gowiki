@@ -36,15 +36,7 @@ db.createUser({
 db.users.insert({
   name: "admin",
   email: "admin@email.com",
-  password: "admin",
+  password: "",
   level: 7,
   admin: true
-});
-
-// insert an example document so people can see what it looks like
-db.pages.insert({
-  title: "Example Document",
-  body: "This is an example document. Please edit it",
-  url: "",
-  level: 0
 });

@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"crypto/aes"
@@ -33,12 +33,12 @@ func init() {
 	var err error
 	keyHash, err = scrypt.Key([]byte(keyPlain), []byte("verse"), 16384, 8, 1, 32)
 	if err != nil {
-		errorLogger.Print("Could not hash document crypto key.\n ", err)
+		ErrorLogger.Print("Could not hash document crypto key.\n ", err)
 	}
 }
 
 // Save saves the page to the database
-func (d *Document) Save() error {
+func (d *Document) save() error {
 	session := dbConnect()
 	defer session.Close()
 
@@ -48,7 +48,7 @@ func (d *Document) Save() error {
 }
 
 // LoadPage loads retrieves the page data from the database
-func LoadPage(idHex string) (*Document, error) {
+func loadPage(idHex string) (*Document, error) {
 	id := bson.ObjectIdHex(idHex)
 	session := dbConnect()
 	defer session.Close()
@@ -77,11 +77,28 @@ func findAllDocs() (*[]Document, error) {
 	return &documents, nil
 }
 
-func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
-	var body template.HTML
-	d, err := LoadPage(id)
+// IndexHandler handles the index page request
+func IndexHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromSession()
+	pages, err := findAllDocs()
 	if err != nil {
-		errorLogger.Print("Page not found. id: "+id, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	data := map[string]interface{}{
+		"pages": pages,
+		"user":  user,
+	}
+
+	RenderTemplate(w, r, "index", data)
+}
+
+// ViewHandler handles the document view page
+func ViewHandler(w http.ResponseWriter, r *http.Request, id string) {
+	var body template.HTML
+	d, err := loadPage(id)
+	if err != nil {
+		ErrorLogger.Print("Page not found. id: "+id, err)
 		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -94,7 +111,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 	body, err = d.decrypt()
 	if err != nil {
-		infoLogger.Print("Could not decrypt page id: "+id+"\nDisplaying blank body", err)
+		InfoLogger.Print("Could not decrypt page id: "+id+"\nDisplaying blank body", err)
 	}
 
 	data := map[string]interface{}{
@@ -103,19 +120,20 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 		"user":     user,
 	}
 
-	renderTemplate(w, r, "view", data)
+	RenderTemplate(w, r, "view", data)
 }
 
-func editHandler(w http.ResponseWriter, r *http.Request, id string) {
+// EditHandler handles the document edit page
+func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
 	d := &Document{}
 	var err error
 	var body template.HTML
 	user := getUserFromSession()
 
 	if id != "" {
-		d, err = LoadPage(id)
+		d, err = loadPage(id)
 		if err != nil {
-			errorLogger.Print("Page not found. id: "+id, err)
+			ErrorLogger.Print("Page not found. id: "+id, err)
 			UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
@@ -127,14 +145,14 @@ func editHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 		body, err = d.decrypt()
 		if err != nil {
-			errorLogger.Print("Could not decrypt page id: "+id+" \nDisplaying blank body\n ", err)
+			ErrorLogger.Print("Could not decrypt page id: "+id+" \nDisplaying blank body\n ", err)
 			UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
 		}
 	}
 
 	users, err := findAllUsers()
 	if err != nil {
-		errorLogger.Print("Could not find all users. page id: "+id, err)
+		ErrorLogger.Print("Could not find all users. page id: "+id, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
@@ -145,10 +163,11 @@ func editHandler(w http.ResponseWriter, r *http.Request, id string) {
 		"user":     user,
 	}
 
-	renderTemplate(w, r, "edit", data)
+	RenderTemplate(w, r, "edit", data)
 }
 
-func saveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
+// SaveHandler handles the document save page
+func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 	title := r.FormValue("title")
 	body := template.HTML(r.FormValue("body"))
 	// userIds := strings.Split(r.FormValue("permissions"), ",")
@@ -161,7 +180,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 
 	err = d.encrypt(body)
 	if err != nil {
-		errorLogger.Print("Could not encrypt body of page id: "+idHex+" \n ", err)
+		ErrorLogger.Print("Could not encrypt body of page id: "+idHex+" \n ", err)
 	}
 
 	if idHex != "" {
@@ -170,7 +189,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 		d.ID = bson.NewObjectId()
 	}
 
-	err = d.Save()
+	err = d.save()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
