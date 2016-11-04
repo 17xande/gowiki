@@ -1,0 +1,20 @@
+# SCMS Configuration
+
+[databases]
+  [databases.app]
+  host = "localhost"
+  name = "scms"
+  username = "scms"
+  password = "scms"
+
+  [databases.log]
+  host = "localhost"
+  name = "scms_log"
+  username = "scms_log"
+  password = "scms_log"
+
+[secrets]
+# user password encryption salt
+passwordSalt = "You are the salt of the earth. But if the salt loses its saltiness, how can it be made salty again?"
+# cipher key for document encryption
+documentKey = "Take these documents, both the sealed and unsealed copies of the deed of purchase, and put them in a clay jar so they will last a long time." 

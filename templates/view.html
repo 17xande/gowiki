@@ -1,11 +1,11 @@
 {{define "head"}}
-  <title>SCMS| {{.page.Title}}</title>
+  <title>SCMS| {{.document.Title}}</title>
   <link rel="stylesheet" href="/public/dependencies/css/quill.bubble.css">
 {{end}}
 
 {{define "body"}}
-<h1>{{.page.Title}}</h1>
-<p>[<a href="/edit/{{.page.ID.Hex}}">Edit</a>]</p>
+<h1>{{.document.Title}}</h1>
+<p>[<a href="/edit/{{.document.ID.Hex}}">Edit</a>]</p>
 <div id="divQuill">{{.body}}</div>
 {{end}}
 

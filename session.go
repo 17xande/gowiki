@@ -40,10 +40,10 @@ func SessionDelete(w http.ResponseWriter, r *http.Request) {
 	sess.Save(r, w)
 }
 
-func levelCheck(w http.ResponseWriter, r *http.Request, p *Page) bool {
+func levelCheck(w http.ResponseWriter, r *http.Request, d *Document) bool {
 	level := UserSession.Values["level"].(int)
 
-	if level < p.Level {
+	if level < d.Level {
 		UserSession.AddFlash("Sorry. You're not allowed to view that page", "warning")
 		UserSession.Save(r, w)
 		return false

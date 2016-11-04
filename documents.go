@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"strconv"
 
+	"golang.org/x/crypto/scrypt"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
-// Page represents any webpage on the site
-type Page struct {
+// Document represents a document on the site
+type Document struct {
 	ID    bson.ObjectId `json:"id" bson:"_id"`
 	Title string        `json:"title" bson:"title"`
 	Body  []byte        `json:"body" bson:"body"`
@@ -22,52 +24,62 @@ type Page struct {
 	Level int           `json:"level" bson:"level"`
 }
 
-const pageCol = "pages"
-const cryptoKey = "Take these documents, both the sealed and unsealed copies of the deed of purchase, and put them in a clay jar so they will last a long time."
+const documentCol = "documents"
+const keyPlain = "Take these documents, both the sealed and unsealed copies of the deed of purchase, and put them in a clay jar so they will last a long time."
+
+var keyHash []byte
+
+func init() {
+	var err error
+	keyHash, err = scrypt.Key([]byte(keyPlain), []byte("verse"), 16384, 8, 1, 32)
+	if err != nil {
+		errorLogger.Print("Could not hash document crypto key.\n ", err)
+	}
+}
 
 // Save saves the page to the database
-func (p *Page) Save() error {
+func (d *Document) Save() error {
 	session := dbConnect()
 	defer session.Close()
 
-	collection := session.DB(db).C(pageCol)
-	_, err := collection.UpsertId(p.ID, p)
+	collection := session.DB(db).C(documentCol)
+	_, err := collection.UpsertId(d.ID, d)
 	return err
 }
 
 // LoadPage loads retrieves the page data from the database
-func LoadPage(idHex string) (*Page, error) {
+func LoadPage(idHex string) (*Document, error) {
 	id := bson.ObjectIdHex(idHex)
 	session := dbConnect()
 	defer session.Close()
 
-	collection := session.DB(db).C(pageCol)
-	page := Page{}
-	err := collection.FindId(id).One(&page)
+	collection := session.DB(db).C(documentCol)
+	d := &Document{}
+	err := collection.FindId(id).One(d)
 
 	if err != nil {
 		return nil, err
 	}
-	return &page, nil
+	return d, nil
 }
 
-func findAllDocs() (*[]Page, error) {
+func findAllDocs() (*[]Document, error) {
 	session := dbConnect()
 	defer session.Close()
 
-	collection := session.DB(db).C(pageCol)
-	var pages []Page
-	err := collection.Find(nil).All(&pages)
+	collection := session.DB(db).C(documentCol)
+	var documents []Document
+	err := collection.Find(nil).All(&documents)
 	if err != nil {
 		return nil, err
 	}
 
-	return &pages, nil
+	return &documents, nil
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	var body template.HTML
-	p, err := LoadPage(id)
+	d, err := LoadPage(id)
 	if err != nil {
 		errorLogger.Print("Page not found. id: "+id, err)
 		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
@@ -76,35 +88,32 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 	user := getUserFromSession()
 
-	if !levelCheck(w, r, p) {
+	if !levelCheck(w, r, d) {
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 
-	body, err = p.decrypt()
+	body, err = d.decrypt()
 	if err != nil {
-		errorLogger.Print("Could not decrypt page id: "+id, err)
-		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
+		infoLogger.Print("Could not decrypt page id: "+id+"\nDisplaying blank body", err)
 	}
 
 	data := map[string]interface{}{
-		"page": p,
-		"body": body,
-		"user": user,
+		"document": d,
+		"body":     body,
+		"user":     user,
 	}
 
 	renderTemplate(w, r, "view", data)
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request, id string) {
-	p := &Page{}
+	d := &Document{}
 	var err error
 	var body template.HTML
 	user := getUserFromSession()
 
 	if id != "" {
-		p, err = LoadPage(id)
+		d, err = LoadPage(id)
 		if err != nil {
 			errorLogger.Print("Page not found. id: "+id, err)
 			UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
@@ -112,16 +121,14 @@ func editHandler(w http.ResponseWriter, r *http.Request, id string) {
 			return
 		}
 
-		if !levelCheck(w, r, p) {
+		if !levelCheck(w, r, d) {
 			http.Redirect(w, r, "/", http.StatusFound)
 		}
 
-		body, err = p.decrypt()
+		body, err = d.decrypt()
 		if err != nil {
-			errorLogger.Print("Could not decrypt page id: "+id, err)
+			errorLogger.Print("Could not decrypt page id: "+id+" \nDisplaying blank body\n ", err)
 			UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
 		}
 	}
 
@@ -132,10 +139,10 @@ func editHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 
 	data := map[string]interface{}{
-		"page":  p,
-		"body":  body,
-		"users": users,
-		"user":  user,
+		"document": d,
+		"body":     body,
+		"users":    users,
+		"user":     user,
 	}
 
 	renderTemplate(w, r, "edit", data)
@@ -147,20 +154,23 @@ func saveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 	// userIds := strings.Split(r.FormValue("permissions"), ",")
 	level, err := strconv.Atoi(r.FormValue("level"))
 
-	p := &Page{
+	d := &Document{
 		Title: title,
 		Level: level,
 	}
 
-	err = p.encrypt(body)
-
-	if idHex != "" {
-		p.ID = bson.ObjectIdHex(idHex)
-	} else {
-		p.ID = bson.NewObjectId()
+	err = d.encrypt(body)
+	if err != nil {
+		errorLogger.Print("Could not encrypt body of page id: "+idHex+" \n ", err)
 	}
 
-	err = p.Save()
+	if idHex != "" {
+		d.ID = bson.ObjectIdHex(idHex)
+	} else {
+		d.ID = bson.NewObjectId()
+	}
+
+	err = d.Save()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -171,12 +181,12 @@ func saveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
 	// }
 
-	http.Redirect(w, r, "/view/"+p.ID.Hex(), http.StatusFound)
+	http.Redirect(w, r, "/view/"+d.ID.Hex(), http.StatusFound)
 }
 
-func (p *Page) encrypt(body template.HTML) (err error) {
+func (d *Document) encrypt(body template.HTML) (err error) {
 	var block cipher.Block
-	key := []byte(cryptoKey)
+	key := []byte(keyHash)
 	plaintext := []byte(body)
 	block, err = aes.NewCipher(key)
 	if err != nil {
@@ -193,15 +203,15 @@ func (p *Page) encrypt(body template.HTML) (err error) {
 	stream := cipher.NewCFBEncrypter(block, iv)
 	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
 
-	p.Body = ciphertext
+	d.Body = ciphertext
 
 	return err
 }
 
-func (p *Page) decrypt() (body template.HTML, err error) {
+func (d *Document) decrypt() (body template.HTML, err error) {
 	var block cipher.Block
-	key := []byte(cryptoKey)
-	ciphertext := p.Body
+	key := []byte(keyHash)
+	ciphertext := d.Body
 	block, err = aes.NewCipher(key)
 	if err != nil {
 		return "", err

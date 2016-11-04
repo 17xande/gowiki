@@ -1,11 +1,11 @@
 {{define "head"}}
-  <title>SCMS|Edit {{.page.Title}}</title>
+  <title>SCMS|Edit {{.document.Title}}</title>
   <link rel="stylesheet" href="/public/dependencies/css/quill.snow.css">
 {{end}}
 
 {{define "body"}}
-<form id="frmContent" action="/save/{{.page.ID.Hex}}" method="POST">
-  <h1>Editing <input id="txtTitle" name="title" type="text" value="{{.page.Title}}"></h1>
+<form id="frmContent" action="/save/{{.document.ID.Hex}}" method="POST">
+  <h1>Editing <input id="txtTitle" name="title" type="text" value="{{.document.Title}}"></h1>
   <div id="divQuill">{{.body}}</div>
   <input id="hdnBody" type="hidden" name="body">
   <input id="btnSave" type="submit" value="Save">
@@ -13,7 +13,7 @@
   <div>
     <h3>Permissions:</h3>
     <label for="numLevel">Level:</label>
-    <input id="numLevel" name="level" type="number" value="{{.page.Level}}">
+    <input id="numLevel" name="level" type="number" value="{{.document.Level}}">
     <input id="hdnPermissions" type="hidden" name="permissions">
   </div>
 </form>

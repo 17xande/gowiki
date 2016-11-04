@@ -80,8 +80,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 
 func userEditHandler(w http.ResponseWriter, r *http.Request) {
 	var editUser *User
-	// user := getUserFromSession()
-	var user User
+	user := getUserFromSession()
 	var err error
 	exists := false
 
