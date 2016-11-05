@@ -5,14 +5,16 @@
 
 {{define "body"}}
   <h1>{{ if .exists }}Edit{{ else }}New{{end}} Folder</h1>
-  <form id="frmFolder" action="/folders/save/{{.editUser.ID.Hex}}" method="POST">
-    <input id="hdnId" name="folderId" type="hidden" value="{{.editFolder.ID.Hex}}">
+  <form id="frmFolder" action="/folders/save/{{.folder.ID.Hex}}" method="POST">
+    <input id="hdnId" name="folderId" type="hidden" value="{{.folder.ID.Hex}}">
     <label for="txtName">Name:</label>
-    <input id="txtName" name="name" type="text" value="{{.editFolder.Name}}">
+    <input id="txtName" name="name" type="text" value="{{.folder.Name}}">
+    <label for="numLevel">Level:</label>
+    <input id="numLevel" name="level" type="number" value="{{.folder.Level}}">
     <h3>Users in folder:</h3>
     <select name="users" id="slcUsers" multiple data-placeholder="Select users..." class="chosen-select">
       {{range $index, $user := .users}}
-      <option value="{{$user.ID.Hex}}">{{$user.Name}}</option>
+      <option value="{{$user.ID.Hex}}" {{if false}}selected{{end}}>{{$user.Name}}</option>
       {{end}}
     </select>
     <input type="submit" value="Save">

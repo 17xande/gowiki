@@ -193,7 +193,9 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 	err = d.save()
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		ErrorLogger.Print("Could not save page id: "+idHex+" \n ", err)
+		UserSession.AddFlash("Error! Could not save page. If this error persists please contact support", "error")
+		http.Redirect(w, r, "/edit/"+idHex, http.StatusFound)
 	}
 
 	// err = permissionsSave(userIds, id)

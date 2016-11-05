@@ -260,7 +260,6 @@ func (user *User) authenticate() (found bool, err error) {
 func (user *User) saveUser() error {
 	session := dbConnect()
 	defer session.Close()
-
 	collection := session.DB(db).C(userCol)
 
 	info, err := collection.UpsertId(user.ID, &user)

@@ -3,6 +3,7 @@ package models
 import (
 	"net/http"
 	"path"
+	"strconv"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -13,8 +14,11 @@ const col = "folders"
 type Folder struct {
 	ID              bson.ObjectId   `json:"id" bson:"_id"`
 	Name            string          `json:"name" bson:"name"`
+	Level           int             `json:"level" bson:"level"`
+	UserIDs         []bson.ObjectId `json:"userIDs" bson:"userIDs"`
+	Users           []User          // doesn't get stored in the database
 	ParentFolderIDs []bson.ObjectId `json:"parentFolderIDs" bson:"parentFolderIDs"`
-	ParentFolders   []Folder
+	ParentFolders   []Folder        // doesn't get stored in the database
 }
 
 // FolderHandler handles the indexing of folders
@@ -82,6 +86,40 @@ func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
 
 // FolderSaveHandler handles the saving of folders
 func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		var userIDs []bson.ObjectId
+		r.ParseForm()
+		name := r.Form["name"][0]
+		strUserIDs := r.Form["users"]
+		level, err := strconv.Atoi(r.Form["level"][0])
+		_, id := path.Split(r.URL.Path)
+
+		if err != nil {
+			ErrorLogger.Print("Error parsing Folder level POST. {id: "+id+"} ", err.Error())
+			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.")
+		}
+
+		for _, uID := range strUserIDs {
+			userIDs = append(userIDs, bson.ObjectIdHex(uID))
+		}
+
+		f := &Folder{
+			ID:      bson.ObjectIdHex(id),
+			Name:    name,
+			Level:   level,
+			UserIDs: userIDs,
+		}
+
+		err = f.save()
+
+		if err != nil {
+			ErrorLogger.Print("Error saving folder to database. {id: "+id+"} ", err.Error())
+			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.")
+		}
+
+		InfoLogger.Print("Folder saved {id: " + id + "}")
+	}
+	http.Redirect(w, r, "/folders/", http.StatusFound)
 }
 
 func findAllFolders() (*[]Folder, error) {
