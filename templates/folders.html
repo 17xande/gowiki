@@ -1,0 +1,15 @@
+{{define "head"}}
+  <title>SCMS: Folders</title>
+{{end}}
+
+{{define "body"}}
+  <h1>Folders:</h1>
+  <a href="/folders/edit">New Folder</a>
+  <ul>
+    {{range $index, $folder := .folders}}
+      <li><a href="/folders/edit/{{$folder.ID.Hex}}">{{$folder.Name}}</a></li>
+    {{end}}
+  </ul>
+{{end}}
+
+{{define "scripts"}}{{end}}

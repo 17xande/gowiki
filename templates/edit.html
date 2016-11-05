@@ -14,15 +14,14 @@
     <h3>Permissions:</h3>
     <label for="numLevel">Level:</label>
     <input id="numLevel" name="level" type="number" value="{{.document.Level}}">
-    <input id="hdnPermissions" type="hidden" name="permissions">
   </div>
+  <h4>User Override:</h4>
+  <select name="users" id="slcUsers">
+    {{range $index, $user := .users}}
+    <option value="{{$user.ID.Hex}}">{{$user.Name}}</option>
+    {{end}}
+  </select>
 </form>
-<h4>User Override:</h4>
-<ul id="ulPermissions">
-  {{range $index, $user := .users}}
-    <label>{{$user.Name}}:<input type="checkbox" data-user-id="{{$user.ID.Hex}}"></label>
-  {{end}}
-</ul>
 {{end}}
 
 {{define "scripts"}}
@@ -38,26 +37,13 @@
     let id = window.location.pathname.slice(window.location.pathname.lastIndexOf('/'));
 
     // redirect to the view page
-    $(btnCancel).on("click", function() {
+    btnCancel.addEventListener('click', function(event) {
       if (id == "/") {
         window.location.href = "/";
       } else {        
         window.location.href = "/view" + id;
       }
       return false
-    });
-
-    $("#frmContent").submit(function() {
-      hdnBody.value = quill.container.children[0].innerHTML;
-      csvChecked = $("#ulPermissions")
-        .find("input:checked")
-        .map((index, element) => element.getAttribute("data-user-id"))
-        .get()
-        .join();
-
-      hdnPermissions.value = csvChecked
-
-      return true;
-    });
+    }, false);
   </script>
 {{end}}

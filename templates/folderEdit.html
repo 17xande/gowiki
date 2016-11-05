@@ -1,0 +1,29 @@
+{{define "head"}}
+  <title>SCMS: Edit Folder</title>
+  <link rel="stylesheet" href="/public/dependencies/css/chosen.min.css">
+{{end}}
+
+{{define "body"}}
+  <h1>{{ if .exists }}Edit{{ else }}New{{end}} Folder</h1>
+  <form id="frmFolder" action="/folders/save/{{.editUser.ID.Hex}}" method="POST">
+    <input id="hdnId" name="folderId" type="hidden" value="{{.editFolder.ID.Hex}}">
+    <label for="txtName">Name:</label>
+    <input id="txtName" name="name" type="text" value="{{.editFolder.Name}}">
+    <h3>Users in folder:</h3>
+    <select name="users" id="slcUsers" multiple data-placeholder="Select users..." class="chosen-select">
+      {{range $index, $user := .users}}
+      <option value="{{$user.ID.Hex}}">{{$user.Name}}</option>
+      {{end}}
+    </select>
+    <input type="submit" value="Save">
+  </form>
+{{end}}
+
+{{define "scripts"}}
+  <script src="/public/dependencies/js/chosen.jquery.min.js"></script>
+  <script>
+    $('#slcUsers').chosen({
+      no_results_text: "No users found"
+    });
+  </script>
+{{end}}

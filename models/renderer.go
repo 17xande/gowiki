@@ -16,6 +16,8 @@ func init() {
 	templates["view.html"] = template.Must(template.ParseFiles(temp+"view.html", temp+"base.html"))
 	templates["users.html"] = template.Must(template.ParseFiles(temp+"users.html", temp+"base.html"))
 	templates["userEdit.html"] = template.Must(template.ParseFiles(temp+"userEdit.html", temp+"base.html"))
+	templates["folders.html"] = template.Must(template.ParseFiles(temp+"folders.html", temp+"base.html"))
+	templates["folderEdit.html"] = template.Must(template.ParseFiles(temp+"folderEdit.html", temp+"base.html"))
 	templates["login.html"] = template.Must(template.ParseFiles(temp+"login.html", temp+"base.html"))
 	templates["permissions.html"] = template.Must(template.ParseFiles(temp+"permissions.html", temp+"base.html"))
 }

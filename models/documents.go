@@ -17,11 +17,12 @@ import (
 
 // Document represents a document on the site
 type Document struct {
-	ID    bson.ObjectId `json:"id" bson:"_id"`
-	Title string        `json:"title" bson:"title"`
-	Body  []byte        `json:"body" bson:"body"`
-	URL   string        `json:"url" bson:"url"`
-	Level int           `json:"level" bson:"level"`
+	ID      bson.ObjectId `json:"id" bson:"_id"`
+	Title   string        `json:"title" bson:"title"`
+	Body    []byte        `json:"body" bson:"body"`
+	URL     string        `json:"url" bson:"url"`
+	Level   int           `json:"level" bson:"level"`
+	Folders []Folder
 }
 
 const documentCol = "documents"

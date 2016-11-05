@@ -28,10 +28,12 @@ func main() {
 	http.HandleFunc("/users/", models.SessionHandler(models.UserHandler))
 	http.HandleFunc("/users/edit/", models.SessionHandler(models.UserEditHandler))
 	http.HandleFunc("/users/save/", models.SessionHandler(models.UserSaveHandler))
-	http.HandleFunc("/folders/", models.SessionHandler(models.FolderHandler))
 	// Handlers without security for adding the first user
 	// http.HandleFunc("/users/edit/", userEditHandler)
 	// http.HandleFunc("/users/save/", userSaveHandler)
+	http.HandleFunc("/folders/", models.SessionHandler(models.FolderHandler))
+	http.HandleFunc("/folders/edit/", models.SessionHandler(models.FolderEditHandler))
+	http.HandleFunc("/folders/save/", models.SessionHandler(models.FolderSaveHandler))
 
 	p := os.Getenv("PORT")
 	if p == "" {

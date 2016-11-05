@@ -83,18 +83,21 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 
 // UserEditHandler handles the edit user page
 func UserEditHandler(w http.ResponseWriter, r *http.Request) {
-	var editUser *User
-	user := getUserFromSession()
 	var err error
+	editUser := &User{}
 	exists := false
+	user := getUserFromSession()
 
 	_, id := path.Split(r.URL.Path)
 
 	if len(id) > 0 {
 		editUser, err = findUser(id)
 		exists = true
-	} else {
-		editUser = &User{}
+	}
+
+	if err != nil {
+		ErrorLogger.Print("Error trying to find user {id: "+id+"}", err)
+		UserSession.AddFlash("Error. User could not be retrieved.", "error")
 	}
 
 	tmpData := map[string]interface{}{
@@ -106,14 +109,10 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 		"flashAlert":   UserSession.Flashes("alert"),
 	}
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		panic(err)
-	}
-
 	err = templates["userEdit.html"].ExecuteTemplate(w, "base", tmpData)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		ErrorLogger.Print("Error trying to display user {id: "+id+"}", err)
+		UserSession.AddFlash("Error. User could not be displayed.", "error")
 	}
 }
 
@@ -215,33 +214,33 @@ func getUserFromSession() (user *User) {
 	}
 }
 
-func findAllUsers() (users *[]User, err error) {
+func findAllUsers() (*[]User, error) {
 	session := dbConnect()
 	defer session.Close()
 
 	collection := session.DB(db).C(userCol)
-	err = collection.Find(nil).All(&users)
+	var users []User
+	err := collection.Find(nil).All(&users)
 	if err != nil {
 		return nil, err
 	}
 
-	return users, nil
+	return &users, nil
 }
 
-func findUser(idHex string) (*User, error) {
+func findUser(idHex string) (user *User, err error) {
 	id := bson.ObjectIdHex(idHex)
 	session := dbConnect()
 	defer session.Close()
 
 	collection := session.DB(db).C(userCol)
-	var user User
-	err := collection.FindId(id).One(&user)
+	err = collection.FindId(id).One(user)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 func (user *User) authenticate() (found bool, err error) {
