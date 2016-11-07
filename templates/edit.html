@@ -9,23 +9,31 @@
   <h1>Editing <input id="txtTitle" name="title" type="text" value="{{.document.Title}}"></h1>
   <div id="divQuill">{{.body}}</div>
   <input id="hdnBody" type="hidden" name="body">
-  <input id="btnSave" type="submit" value="Save">
-  <button id="btnCancel">Cancel</button>
   <div>
     <h3>Permissions:</h3>
     <label for="numLevel">Level:</label>
     <input id="numLevel" name="level" type="number" value="{{.document.Level}}">
-  </div>
-  <h4>User Override:</h4>
-  <select name="users" id="slcUsers" multiple data-placeholder="Select users..." class="chosen-select">
-    {{ range $i, $user := .users }}
-      <option value="{{ $user.ID.Hex }}" 
-      {{ range $j, $userID := $.document.UserIDs }}
-        {{ if eq $user.ID $userID }} selected {{ end }}
+    <select id="slcFolder" name="folder" data-placeholder="Select folder..." class="chosen-select">
+      <option></option> <!-- empty option first so there's no default option-->
+      {{ range $i, $folder := .folders }}
+        <option value="{{ $folder.ID.Hex }}"
+          {{ if eq $.document.FolderID $folder.ID }} selected {{ end }}
+        >{{ $folder.Name }}</option>
       {{ end }}
-      >{{ $user.Name }}</option>
-    {{ end }}
-  </select>
+    </select>
+    <h4>User Override:</h4>
+    <select name="users" id="slcUsers" multiple data-placeholder="Select users..." class="chosen-select">
+      {{ range $i, $user := .users }}
+        <option value="{{ $user.ID.Hex }}" 
+        {{ range $j, $userID := $.document.UserIDs }}
+          {{ if eq $user.ID $userID }} selected {{ end }}
+        {{ end }}
+        >{{ $user.Name }}</option>
+      {{ end }}
+    </select>
+  </div>
+  <input id="btnSave" type="submit" value="Save">
+  <button id="btnCancel">Cancel</button>
 </form>
 {{end}}
 
@@ -39,6 +47,10 @@
     });
     
     $('#slcUsers').chosen({
+      no_results_text: "No users found"
+    });
+    
+    $('#slcFolder').chosen({
       no_results_text: "No users found"
     });
 

@@ -12,13 +12,13 @@ const col = "folders"
 
 // Folder represents folders used to store documents
 type Folder struct {
-	ID          bson.ObjectId   `json:"id" bson:"_id"`
-	Name        string          `json:"name"`
-	Level       int             `json:"level"`
-	UserIDs     []bson.ObjectId `json:"userIDs" bson:"userIDs"`
-	Users       []User          `json:"-" bson:"-"` // doesn't get stored in the database
-	DocumentIDs []bson.ObjectId `json:"documentIDs" bson:"documentIDs"`
-	Documents   []Document      `json:"-" bson:"-"` // doesn't get stored in the database
+	ID      bson.ObjectId   `json:"id" bson:"_id"`
+	Name    string          `json:"name"`
+	Level   int             `json:"level"`
+	UserIDs []bson.ObjectId `json:"userIDs" bson:"userIDs"`
+	Users   []User          `json:"-" bson:"-"` // doesn't get stored in the database
+	// DocumentIDs []bson.ObjectId `json:"documentIDs" bson:"documentIDs"`
+	// Documents   []Document      `json:"-" bson:"-"` // doesn't get stored in the database
 	// We might have folders within folders in the future
 	// FolderIDs   []bson.ObjectId `json:"folderIDs" bson:"folderIDs"`
 	// Folders     []Folder        `json:"-" bson:"-"` // doesn't get stored in the database
@@ -151,11 +151,10 @@ func findFolder(idHex string) (*Folder, error) {
 	id := bson.ObjectIdHex(idHex)
 	session := dbConnect()
 	defer session.Close()
-
 	collection := session.DB(db).C(col)
 	f := &Folder{}
-	err := collection.FindId(id).One(f)
 
+	err := collection.FindId(id).One(f)
 	if err != nil {
 		return nil, err
 	}

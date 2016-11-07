@@ -1,4 +1,4 @@
-{{define "base"}}
+{{ define "base" }}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,71 +10,70 @@
     <link rel="stylesheet" href="/public/dependencies/css/tether.min.css">
     <link rel="stylesheet" href="/public/dependencies/css/bootstrap-flex.min.css">
     <link rel="stylesheet" href="/public/base.css">
-    {{template "head" .}}
+    {{ template "head" . }}
   </head>
   <body>
     <nav class="navbar navbar-dark bg-inverse">
       <a href="#" class="navbar-brand">SCMS</a>
       <ul class="nav navbar-nav">
+        {{ if .user.Name }}
         <li class="nav-item active">
           <a href="/" class="nav-link">Documents</a>
         </li>
-        {{if .user.Admin}}
+        {{ end }}
+        {{ if .user.Admin }}
         <li class="nav-item">
           <a href="/folders/" class="nav-link">Folders</a>
         </li>
         <li class="nav-item">
           <a href="/users/" class="nav-link">Users</a>
         </li>
-        <li class="nav-item">
-          <a href="/permissions/" class="nav-link">Permissions</a>
-        </li>
-        {{end}}
+        {{ end }}
+        {{ if .user.Name }}
         <li class="nav-item">
           <a href="/users/edit/{{.user.ID.Hex}}" class="nav-link">Account</a>
         </li>
-        {{if .user}}
         <li class="nav-item">
           <a href="/logout" class="nav-link">Logout</a>
         </li>
-        {{end}}
+        {{ end }}
       </ul>
     </nav>
    
-    {{if .flashSuccess}}
+    {{ if .flashSuccess }}
     <div class="alert alert-success" role="alert">
-      <strong>Success!</strong> {{.flashSuccess}}
+      <strong>Success!</strong> {{ .flashSuccess }}
     </div>
-    {{end}}
+    {{ end }}
    
-    {{if .flashInfo}}
+    {{ if .flashInfo }}
     <div class="alert alert-info" role="alert">
-      <strong>Info!</strong> {{.flashInfo}}
+      <strong>Info!</strong> {{ .flashInfo }}
     </div>
-    {{end}}
+    {{ end }}
    
-    {{if .flashWarning}}
+    {{ if .flashWarning }}
     <div class="alert alert-warning" role="alert">
-      <strong>Warning!</strong> {{.flashWarning}}
+      <strong>Warning!</strong> {{ .flashWarning }}
     </div>
-    {{end}}
+    {{ end }}
 
-    {{if .flashDanger}}
+    {{ if .flashDanger }}
     <div class="alert alert-danger" role="alert">
-      <strong>Danger!</strong> {{.flashDanger}}
+      <strong>Danger!</strong> {{ .flashDanger }}
     </div>
-    {{end}}
+    {{ end }}
 
     <div class="container-fluid">
       <div class="starter-template">
-        {{template "body" .}}
+        {{ template "body" . }}
       </div>
     </div>
 
     <script src="/public/dependencies/js/jquery.min.js"></script>
     <script src="/public/dependencies/js/tether.min.js"></script>
     <script src="/public/dependencies/js/bootstrap.min.js"></script>
-    {{template "scripts" .}}
+    {{ template "scripts" . }}
   </body>
 </html>
-{{end}}
+{{ end }}

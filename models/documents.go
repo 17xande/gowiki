@@ -17,12 +17,13 @@ import (
 
 // Document represents a document on the site
 type Document struct {
-	ID      bson.ObjectId   `json:"id" bson:"_id"`
-	Title   string          `json:"title" bson:"title"`
-	Body    []byte          `json:"body" bson:"body"`
-	URL     string          `json:"url" bson:"url"`
-	Level   int             `json:"level" bson:"level"`
-	UserIDs []bson.ObjectId `json:"userIDs" bson:"userIDs"`
+	ID       bson.ObjectId   `json:"id" bson:"_id"`
+	Title    string          `json:"title"`
+	Body     []byte          `json:"body"`
+	URL      string          `json:"url"`
+	Level    int             `json:"level"`
+	FolderID bson.ObjectId   `json:"folderID" bson:"folderID"`
+	UserIDs  []bson.ObjectId `json:"userIDs" bson:"userIDs"`
 }
 
 const documentCol = "documents"
@@ -156,8 +157,12 @@ func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 	users, err := findAllUsers()
 	if err != nil {
-		ErrorLogger.Print("Could not find all users. page id: "+id, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		ErrorLogger.Print("Could not find all users. Document {id: "+id+"} ", err)
+	}
+
+	folders, err := findAllFolders()
+	if err != nil {
+		ErrorLogger.Print("Could not find all folders. Document {id: "+id+"} ", err)
 	}
 
 	data := map[string]interface{}{
@@ -165,6 +170,7 @@ func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
 		"body":     body,
 		"users":    users,
 		"user":     user,
+		"folders":  folders,
 	}
 
 	RenderTemplate(w, r, "edit", data)
@@ -183,6 +189,7 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 		title := r.Form["title"][0]
 		body := template.HTML(r.Form["body"][0])
 		strUserIDs := r.Form["users"]
+		strFolderID := r.Form["folder"][0]
 		level, err := strconv.Atoi(r.Form["level"][0])
 
 		if err != nil {
@@ -198,6 +205,11 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 			Title:   title,
 			Level:   level,
 			UserIDs: userIDs,
+		}
+
+		// if document is in a folder, write it to the folder
+		if strFolderID != "" {
+			d.FolderID = bson.ObjectIdHex(strFolderID)
 		}
 
 		err = d.encrypt(body)

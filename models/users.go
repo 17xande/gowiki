@@ -13,51 +13,12 @@ import (
 // User defines a user in the system
 type User struct {
 	ID       bson.ObjectId `json:"id" bson:"_id"`
-	Name     string        `json:"name" bson:"name"`
-	Email    string        `json:"email" bson:"email"`
-	Password []byte        `json:"password" bson:"password"`
-	Level    int           `json:"level" bson:"level"`
-	Admin    bool          `json:"admin" bson:"admin"`
-}
-
-// Permission defines additional user permissions for document
-type Permission struct {
-	// ID     bson.ObjectId `json:"id" bson:"_id"`
-	UserID bson.ObjectId `json:"userId" bson:"userId"`
-	DocID  bson.ObjectId `json:"docId" bson:"docId"`
-	List   bool          `json:"list" bson:"list"`
-	Read   bool          `json:"read" bson:"read"`
-	Write  bool          `json:"write" bson:"write"`
-}
-
-// Save the current permission
-func (p *Permission) save() error {
-	session := dbConnect()
-	defer session.Close()
-
-	collection := session.DB(db).C("permissions")
-	IDs := bson.M{"userId": p.UserID, "docId": p.DocID}
-	_, err := collection.Upsert(IDs, p)
-
-	return err
-}
-
-func permissionsSave(userIds []string, docID bson.ObjectId) error {
-	var err error
-	usersLen := len(userIds)
-	for i := 0; i < usersLen; i++ {
-		p := &Permission{
-			UserID: bson.ObjectIdHex(userIds[i]),
-			DocID:  docID,
-			List:   true,
-			Read:   true,
-			Write:  true,
-		}
-
-		p.save()
-	}
-
-	return err
+	Name     string        `json:"name"`
+	Email    string        `json:"email"`
+	Password []byte        `json:"password"`
+	Level    int           `json:"level"`
+	Admin    bool          `json:"admin"`
+	Tech     bool          `json:"tech"`
 }
 
 const userCol = "users"
@@ -119,6 +80,8 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 // UserSaveHandler handles the save user page
 func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 	admin := r.FormValue("admin") == "on"
+	tech := r.FormValue("admin") == "on"
+	password := r.FormValue("password")
 	level, err := strconv.Atoi(r.FormValue("level"))
 
 	if err != nil {
@@ -130,9 +93,14 @@ func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 		Email: r.FormValue("email"),
 		Level: level,
 		Admin: admin,
+		Tech:  tech,
 	}
 
-	err = user.hashPassword(r.FormValue("password"))
+	// If no new password is supplied, don't change the old one.
+	if password != "" {
+		user.Password = []byte(password)
+		err = user.hashPassword()
+	}
 
 	if err != nil {
 		ErrorLogger.Print("Could not hash user's password. ", err)
@@ -165,15 +133,29 @@ func UserLoginHandler(w http.ResponseWriter, r *http.Request) {
 	var user *User
 	var found bool
 
-	// handle login form submit
-	if r.FormValue("email") != "" && r.FormValue("password") != "" {
+	if r.Method == "POST" {
+		r.ParseForm()
+		password := r.Form["password"][0]
+
 		user = &User{
-			Email: r.FormValue("email"),
+			Email:    r.Form["email"][0],
+			Password: []byte(password),
 		}
-		user.hashPassword(r.FormValue("password"))
+
+		err = user.hashPassword()
+		if err != nil {
+			ErrorLogger.Print("Could not hash password for user {email: "+user.Email+"} ", err)
+			data["flashError"] = "There was a problem with your password. Please try again."
+			_ = templates["login.html"].ExecuteTemplate(w, "base", data)
+			return
+		}
+
 		found, err = user.authenticate()
 		if err != nil {
-			ErrorLogger.Print("Problem while looking for user in database. ", err)
+			ErrorLogger.Print("Problem while looking for user in database. {email: "+user.Email+"} ", err)
+			data["flashError"] = "Error trying to auntenticate your account. Please try again."
+			_ = templates["login.html"].ExecuteTemplate(w, "base", data)
+			return
 		}
 
 		if !found {
@@ -228,19 +210,19 @@ func findAllUsers() (*[]User, error) {
 	return &users, nil
 }
 
-func findUser(idHex string) (user *User, err error) {
+func findUser(idHex string) (*User, error) {
 	id := bson.ObjectIdHex(idHex)
 	session := dbConnect()
 	defer session.Close()
 	collection := session.DB(db).C(userCol)
+	u := &User{}
 
-	err = collection.FindId(id).One(user)
-
+	err := collection.FindId(id).One(u)
 	if err != nil {
 		return nil, err
 	}
 
-	return user, nil
+	return u, nil
 }
 
 func findUsers(ids *[]bson.ObjectId) (users *[]User, err error) {
@@ -283,11 +265,11 @@ func (user *User) saveUser() error {
 	return err
 }
 
-func (user *User) hashPassword(pass string) (err error) {
+func (user *User) hashPassword() (err error) {
 	var key []byte
 	// TODO: Move the salt into a non-committed file so that it does not end up on github
 	salt := []byte("You are the salt of the earth. But if the salt loses its saltiness, how can it be made salty again?" + user.Email)
-	key, err = scrypt.Key([]byte(user.Password), salt, 16384, 8, 1, 32)
+	key, err = scrypt.Key(user.Password, salt, 16384, 8, 1, 32)
 	user.Password = key
 	return err
 }
