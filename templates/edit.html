@@ -1,6 +1,7 @@
 {{define "head"}}
   <title>SCMS|Edit {{.document.Title}}</title>
   <link rel="stylesheet" href="/public/dependencies/css/quill.snow.css">
+  <link rel="stylesheet" href="/public/dependencies/css/chosen.min.css">
 {{end}}
 
 {{define "body"}}
@@ -16,25 +17,39 @@
     <input id="numLevel" name="level" type="number" value="{{.document.Level}}">
   </div>
   <h4>User Override:</h4>
-  <select name="users" id="slcUsers">
-    {{range $index, $user := .users}}
-    <option value="{{$user.ID.Hex}}">{{$user.Name}}</option>
-    {{end}}
+  <select name="users" id="slcUsers" multiple data-placeholder="Select users..." class="chosen-select">
+    {{ range $i, $user := .users }}
+      <option value="{{ $user.ID.Hex }}" 
+      {{ range $j, $userID := $.document.UserIDs }}
+        {{ if eq $user.ID $userID }} selected {{ end }}
+      {{ end }}
+      >{{ $user.Name }}</option>
+    {{ end }}
   </select>
 </form>
 {{end}}
 
 {{define "scripts"}}
   <script src="/public/dependencies/js/quill.min.js"></script>
+  <script src="/public/dependencies/js/chosen.jquery.min.js"></script>
   <script>
     let quill = new Quill('#divQuill', {
       placeholder: "Enter text here",
       theme: 'snow'
     });
+    
+    $('#slcUsers').chosen({
+      no_results_text: "No users found"
+    });
 
     let hdnBody = document.getElementById("hdnBody");
     let btnCancel = document.getElementById("btnCancel");
+    let frmContent = document.getElementById("frmContent");
     let id = window.location.pathname.slice(window.location.pathname.lastIndexOf('/'));
+
+    frmContent.addEventListener('submit', function(event) {
+      hdnBody.value = quill.container.firstChild.innerHTML
+    }, true);
 
     // redirect to the view page
     btnCancel.addEventListener('click', function(event) {
@@ -45,5 +60,7 @@
       }
       return false
     }, false);
+
+    
   </script>
 {{end}}

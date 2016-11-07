@@ -12,13 +12,16 @@ const col = "folders"
 
 // Folder represents folders used to store documents
 type Folder struct {
-	ID              bson.ObjectId   `json:"id" bson:"_id"`
-	Name            string          `json:"name" bson:"name"`
-	Level           int             `json:"level" bson:"level"`
-	UserIDs         []bson.ObjectId `json:"userIDs" bson:"userIDs"`
-	Users           []User          // doesn't get stored in the database
-	ParentFolderIDs []bson.ObjectId `json:"parentFolderIDs" bson:"parentFolderIDs"`
-	ParentFolders   []Folder        // doesn't get stored in the database
+	ID          bson.ObjectId   `json:"id" bson:"_id"`
+	Name        string          `json:"name"`
+	Level       int             `json:"level"`
+	UserIDs     []bson.ObjectId `json:"userIDs" bson:"userIDs"`
+	Users       []User          `json:"-" bson:"-"` // doesn't get stored in the database
+	DocumentIDs []bson.ObjectId `json:"documentIDs" bson:"documentIDs"`
+	Documents   []Document      `json:"-" bson:"-"` // doesn't get stored in the database
+	// We might have folders within folders in the future
+	// FolderIDs   []bson.ObjectId `json:"folderIDs" bson:"folderIDs"`
+	// Folders     []Folder        `json:"-" bson:"-"` // doesn't get stored in the database
 }
 
 // FolderHandler handles the indexing of folders
@@ -86,39 +89,47 @@ func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
 
 // FolderSaveHandler handles the saving of folders
 func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
+	var f *Folder
+	_, id := path.Split(r.URL.Path)
+
 	if r.Method == "POST" {
 		var userIDs []bson.ObjectId
 		r.ParseForm()
 		name := r.Form["name"][0]
 		strUserIDs := r.Form["users"]
 		level, err := strconv.Atoi(r.Form["level"][0])
-		_, id := path.Split(r.URL.Path)
 
 		if err != nil {
-			ErrorLogger.Print("Error parsing Folder level POST. {id: "+id+"} ", err.Error())
-			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.")
+			ErrorLogger.Print("Error parsing folder level POST. {id: "+id+"} ", err.Error())
+			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.", "error")
 		}
 
 		for _, uID := range strUserIDs {
 			userIDs = append(userIDs, bson.ObjectIdHex(uID))
 		}
 
-		f := &Folder{
-			ID:      bson.ObjectIdHex(id),
+		f = &Folder{
 			Name:    name,
 			Level:   level,
 			UserIDs: userIDs,
+		}
+
+		if id != "" {
+			f.ID = bson.ObjectIdHex(id)
+		} else {
+			f.ID = bson.NewObjectId()
 		}
 
 		err = f.save()
 
 		if err != nil {
 			ErrorLogger.Print("Error saving folder to database. {id: "+id+"} ", err.Error())
-			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.")
+			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.", "error")
 		}
 
 		InfoLogger.Print("Folder saved {id: " + id + "}")
 	}
+
 	http.Redirect(w, r, "/folders/", http.StatusFound)
 }
 
@@ -136,19 +147,19 @@ func findAllFolders() (*[]Folder, error) {
 	return &folders, nil
 }
 
-func findFolder(idHex string) (folder *Folder, err error) {
+func findFolder(idHex string) (*Folder, error) {
 	id := bson.ObjectIdHex(idHex)
 	session := dbConnect()
 	defer session.Close()
 
 	collection := session.DB(db).C(col)
-	err = collection.FindId(id).One(folder)
+	f := &Folder{}
+	err := collection.FindId(id).One(f)
 
 	if err != nil {
 		return nil, err
 	}
-
-	return folder, nil
+	return f, nil
 }
 
 func (f *Folder) save() (err error) {
@@ -156,17 +167,7 @@ func (f *Folder) save() (err error) {
 	defer session.Close()
 	collection := session.DB(db).C(col)
 
-	// Loop through the folders and store their IDs for the database
-	for _, folder := range f.ParentFolders {
-		f.ParentFolderIDs = append(f.ParentFolderIDs, folder.ID)
-	}
-
-	info, err := collection.UpsertId(f.ID, f)
-
-	// If there was no user id, grab the DB generated id
-	if len(f.ID.Hex()) == 0 {
-		f.ID = info.UpsertedId.(bson.ObjectId)
-	}
+	_, err = collection.UpsertId(f.ID, f)
 
 	return err
 }

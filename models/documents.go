@@ -17,12 +17,12 @@ import (
 
 // Document represents a document on the site
 type Document struct {
-	ID      bson.ObjectId `json:"id" bson:"_id"`
-	Title   string        `json:"title" bson:"title"`
-	Body    []byte        `json:"body" bson:"body"`
-	URL     string        `json:"url" bson:"url"`
-	Level   int           `json:"level" bson:"level"`
-	Folders []Folder
+	ID      bson.ObjectId   `json:"id" bson:"_id"`
+	Title   string          `json:"title" bson:"title"`
+	Body    []byte          `json:"body" bson:"body"`
+	URL     string          `json:"url" bson:"url"`
+	Level   int             `json:"level" bson:"level"`
+	UserIDs []bson.ObjectId `json:"userIDs" bson:"userIDs"`
 }
 
 const documentCol = "documents"
@@ -107,12 +107,15 @@ func ViewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	user := getUserFromSession()
 
 	if !levelCheck(w, r, d) {
+		UserSession.AddFlash("Sorry, but you don't have permission to view this document", "warning")
+		InfoLogger.Print("User tried to access restricted document: {userID: " + user.ID.Hex() + ", documentID: " + id + "}")
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 
 	body, err = d.decrypt()
 	if err != nil {
 		InfoLogger.Print("Could not decrypt page id: "+id+"\nDisplaying blank body", err)
+		UserSession.AddFlash("There was a problem decrypting the page. If this error persists, please contact support.")
 	}
 
 	data := map[string]interface{}{
@@ -169,39 +172,55 @@ func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 // SaveHandler handles the document save page
 func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
-	title := r.FormValue("title")
-	body := template.HTML(r.FormValue("body"))
-	// userIds := strings.Split(r.FormValue("permissions"), ",")
-	level, err := strconv.Atoi(r.FormValue("level"))
+	var d *Document
 
-	d := &Document{
-		Title: title,
-		Level: level,
+	if r.Method == "GET" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	} else if r.Method == "POST" {
+		var userIDs []bson.ObjectId
+		r.ParseForm()
+		title := r.Form["title"][0]
+		body := template.HTML(r.Form["body"][0])
+		strUserIDs := r.Form["users"]
+		level, err := strconv.Atoi(r.Form["level"][0])
+
+		if err != nil {
+			ErrorLogger.Print("Error parsing document level POST. {id: "+idHex+"} ", err.Error())
+			UserSession.AddFlash("Error saving document settings. If this error persists, please contact support.", "error")
+		}
+
+		for _, uID := range strUserIDs {
+			userIDs = append(userIDs, bson.ObjectIdHex(uID))
+		}
+
+		d = &Document{
+			Title:   title,
+			Level:   level,
+			UserIDs: userIDs,
+		}
+
+		err = d.encrypt(body)
+		if err != nil {
+			ErrorLogger.Print("Could not encrypt body of document id: "+idHex+" \n ", err)
+		}
+
+		if idHex != "" {
+			d.ID = bson.ObjectIdHex(idHex)
+		} else {
+			d.ID = bson.NewObjectId()
+		}
+
+		err = d.save()
+
+		if err != nil {
+			ErrorLogger.Print("Could not save page id: "+idHex+" \n ", err)
+			UserSession.AddFlash("Error! Could not save page. If this error persists please contact support", "error")
+			http.Redirect(w, r, "/", http.StatusFound)
+		}
+
+		InfoLogger.Print("Document saved {id: " + d.ID.Hex() + "}")
 	}
-
-	err = d.encrypt(body)
-	if err != nil {
-		ErrorLogger.Print("Could not encrypt body of page id: "+idHex+" \n ", err)
-	}
-
-	if idHex != "" {
-		d.ID = bson.ObjectIdHex(idHex)
-	} else {
-		d.ID = bson.NewObjectId()
-	}
-
-	err = d.save()
-
-	if err != nil {
-		ErrorLogger.Print("Could not save page id: "+idHex+" \n ", err)
-		UserSession.AddFlash("Error! Could not save page. If this error persists please contact support", "error")
-		http.Redirect(w, r, "/edit/"+idHex, http.StatusFound)
-	}
-
-	// err = permissionsSave(userIds, id)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// }
 
 	http.Redirect(w, r, "/view/"+d.ID.Hex(), http.StatusFound)
 }

@@ -232,8 +232,8 @@ func findUser(idHex string) (user *User, err error) {
 	id := bson.ObjectIdHex(idHex)
 	session := dbConnect()
 	defer session.Close()
-
 	collection := session.DB(db).C(userCol)
+
 	err = collection.FindId(id).One(user)
 
 	if err != nil {
@@ -241,6 +241,17 @@ func findUser(idHex string) (user *User, err error) {
 	}
 
 	return user, nil
+}
+
+func findUsers(ids *[]bson.ObjectId) (users *[]User, err error) {
+	session := dbConnect()
+	defer session.Close()
+	collection := session.DB(db).C(userCol)
+
+	query := bson.M{"_id": bson.M{"$in": ids}}
+	err = collection.Find(query).All(users)
+
+	return nil, err
 }
 
 func (user *User) authenticate() (found bool, err error) {
@@ -280,3 +291,12 @@ func (user *User) hashPassword(pass string) (err error) {
 	user.Password = key
 	return err
 }
+
+// func (user *User) in(userIDs []bson.ObjectId) bool {
+// 	for _, id := range userIDs {
+// 		if user.ID == id {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
