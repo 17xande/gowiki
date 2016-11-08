@@ -18,7 +18,6 @@ type Folder struct {
 	UserIDs   []bson.ObjectId `json:"userIDs" bson:"userIDs"`
 	Users     []User          `json:"-" bson:"-"` // doesn't get stored in the database
 	Documents []Document      //`json:"-" bson:"-"` // doesn't get stored in the database
-	// DocumentIDs []bson.ObjectId `json:"documentIDs" bson:"documentIDs"`
 	// We might have folders within folders in the future
 	// FolderIDs   []bson.ObjectId `json:"folderIDs" bson:"folderIDs"`
 	// Folders     []Folder        `json:"-" bson:"-"` // doesn't get stored in the database
@@ -167,20 +166,6 @@ func findFoldersAndDocuments() (*[]Folder, error) {
 	user := getUserFromSession()
 	collection := session.DB(db).C(col)
 	var folders []Folder
-	// var result interface{}
-
-	// query := bson.M{
-	// 	"$lookup": bson.M{ // lookup the documents table here
-	// 		"from":         "documents",
-	// 		"localField":   "_id",
-	// 		"foreignField": "folderID",
-	// 		"as":           "documents",
-	// 	},
-	// 	"$match": bson.M{
-	// 		"level":   bson.M{"$gte": user.Level}, // filter by level
-	// 		"userIDs": user.ID,                    // filter by user
-	// 	},
-	// }
 
 	query := []bson.M{{
 		"$lookup": bson.M{ // lookup the documents table here
@@ -190,29 +175,24 @@ func findFoldersAndDocuments() (*[]Folder, error) {
 			"as":           "documents",
 		}},
 		{"$match": bson.M{
-			"level": bson.M{"$lte": user.Level},
-			// "userIDs": user.ID,
-		}}}
+			"$or": []bson.M{
+				bson.M{"documents.level": bson.M{"$lte": user.Level}},
+				bson.M{"documents.userIDs": user.ID},
+				bson.M{"level": bson.M{"$lte": user.Level}},
+				bson.M{"userIDs": user.ID},
+			}},
+		}}
+	// {"$match": bson.M{
+	// 	"$or": []bson.M{{
+	// 		"documents.level": bson.M{"$lte": user.Level},
+	// 		"folders.level": bson.M{"$lte": user.Level},
+	// 		"documents.userIDs": user.ID,
+	// 		"folders.userIDs":   user.ID,
+	// 	}}},
+	// }}
 
 	pipe := collection.Pipe(query)
 	err := pipe.All(&folders)
-
-	// query := bson.D{{"aggregate", "folders"}, {"pipeline",
-	// 	[]bson.M{
-	// 		bson.M{"$lookup": bson.M{
-	// 			"from":         "documents",
-	// 			"localField":   "_id",
-	// 			"foreignField": "folderID",
-	// 			"as":           "documents",
-	// 		}},
-	// 		bson.M{"$match": bson.M{
-	// 			"level":   bson.M{"$gte": user.Level},
-	// 			"userIDs": user.ID,
-	// 		}},
-	// 	},
-	// }}
-
-	// err := session.DB(db).Run(query, &result)
 
 	if err != nil {
 		return nil, err
