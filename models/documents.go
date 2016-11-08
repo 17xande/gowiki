@@ -80,16 +80,34 @@ func findAllDocs() (*[]Document, error) {
 }
 
 // IndexHandler handles the index page request
+// func IndexHandler(w http.ResponseWriter, r *http.Request) {
+// 	user := getUserFromSession()
+// 	documents, err := findAllDocs()
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 	}
+
+// 	data := map[string]interface{}{
+// 		"documents": documents,
+// 		"user":      user,
+// 	}
+
+// 	RenderTemplate(w, r, "index", data)
+// }
+
+// IndexHandler handles the index page request
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromSession()
-	pages, err := findAllDocs()
+	folders, err := findFoldersAndDocuments()
 	if err != nil {
+		ErrorLogger.Print("Error getting users and folders on index page. ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	data := map[string]interface{}{
-		"pages": pages,
-		"user":  user,
+		"folders": folders,
+		"user":    user,
 	}
 
 	RenderTemplate(w, r, "index", data)

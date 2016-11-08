@@ -12,13 +12,13 @@ const col = "folders"
 
 // Folder represents folders used to store documents
 type Folder struct {
-	ID      bson.ObjectId   `json:"id" bson:"_id"`
-	Name    string          `json:"name"`
-	Level   int             `json:"level"`
-	UserIDs []bson.ObjectId `json:"userIDs" bson:"userIDs"`
-	Users   []User          `json:"-" bson:"-"` // doesn't get stored in the database
+	ID        bson.ObjectId   `json:"id" bson:"_id"`
+	Name      string          `json:"name"`
+	Level     int             `json:"level"`
+	UserIDs   []bson.ObjectId `json:"userIDs" bson:"userIDs"`
+	Users     []User          `json:"-" bson:"-"` // doesn't get stored in the database
+	Documents []Document      //`json:"-" bson:"-"` // doesn't get stored in the database
 	// DocumentIDs []bson.ObjectId `json:"documentIDs" bson:"documentIDs"`
-	// Documents   []Document      `json:"-" bson:"-"` // doesn't get stored in the database
 	// We might have folders within folders in the future
 	// FolderIDs   []bson.ObjectId `json:"folderIDs" bson:"folderIDs"`
 	// Folders     []Folder        `json:"-" bson:"-"` // doesn't get stored in the database
@@ -136,9 +136,9 @@ func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
 func findAllFolders() (*[]Folder, error) {
 	session := dbConnect()
 	defer session.Close()
-
 	collection := session.DB(db).C(col)
 	var folders []Folder
+
 	err := collection.Find(nil).All(&folders)
 	if err != nil {
 		return nil, err
@@ -159,6 +159,66 @@ func findFolder(idHex string) (*Folder, error) {
 		return nil, err
 	}
 	return f, nil
+}
+
+func findFoldersAndDocuments() (*[]Folder, error) {
+	session := dbConnect()
+	defer session.Close()
+	user := getUserFromSession()
+	collection := session.DB(db).C(col)
+	var folders []Folder
+	// var result interface{}
+
+	// query := bson.M{
+	// 	"$lookup": bson.M{ // lookup the documents table here
+	// 		"from":         "documents",
+	// 		"localField":   "_id",
+	// 		"foreignField": "folderID",
+	// 		"as":           "documents",
+	// 	},
+	// 	"$match": bson.M{
+	// 		"level":   bson.M{"$gte": user.Level}, // filter by level
+	// 		"userIDs": user.ID,                    // filter by user
+	// 	},
+	// }
+
+	query := []bson.M{{
+		"$lookup": bson.M{ // lookup the documents table here
+			"from":         "documents",
+			"localField":   "_id",
+			"foreignField": "folderID",
+			"as":           "documents",
+		}},
+		{"$match": bson.M{
+			"level": bson.M{"$lte": user.Level},
+			// "userIDs": user.ID,
+		}}}
+
+	pipe := collection.Pipe(query)
+	err := pipe.All(&folders)
+
+	// query := bson.D{{"aggregate", "folders"}, {"pipeline",
+	// 	[]bson.M{
+	// 		bson.M{"$lookup": bson.M{
+	// 			"from":         "documents",
+	// 			"localField":   "_id",
+	// 			"foreignField": "folderID",
+	// 			"as":           "documents",
+	// 		}},
+	// 		bson.M{"$match": bson.M{
+	// 			"level":   bson.M{"$gte": user.Level},
+	// 			"userIDs": user.ID,
+	// 		}},
+	// 	},
+	// }}
+
+	// err := session.DB(db).Run(query, &result)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &folders, nil
 }
 
 func (f *Folder) save() (err error) {

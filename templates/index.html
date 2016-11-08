@@ -1,16 +1,24 @@
-{{define "head"}}
+{{ define "head" }}
   <title>(SCMS) Sensitive Content Management</title>
-{{end}}
+{{ end }}
 
-{{define "body"}}
+{{ define "body" }}
   <h1>Welcome to the Sensitive Content Management System (SCMS)</h1>
   <h2>Available documents:</h2>
   <a href="/edit/">New Document</a>
-  <ul>
-    {{range $index, $doc := .pages}}
-      <li><a href="/view/{{$doc.ID.Hex}}">{{$doc.Title}}</a></li>
-    {{end}}
+  <!--<ul>
+    {{ range $index, $doc := .documents }}
+      <li><a href="/view/{{ $doc.ID.Hex }}">{{ $doc.Title }}</a></li>
+    {{ end }}
+  </ul>-->
+  <ul>Folders:
+    {{ range $i, $folder := .folders }}
+      <ul>{{ $folder.Name }}</ul>
+      {{ range $j, $document := $folder.Documents }}
+        <li><a href="/view/{{ $document.ID.Hex }}">{{ $document.Title }}</a></li>
+      {{ end }}
+    {{ end }}
   </ul>
-{{end}}
+{{ end }}
 
-{{define "scripts"}}{{end}}
+{{ define "scripts" }}{{ end }}

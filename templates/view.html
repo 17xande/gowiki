@@ -1,15 +1,17 @@
-{{define "head"}}
-  <title>SCMS| {{.document.Title}}</title>
+{{ define "head" }}
+  <title>SCMS| {{ .document.Title }}</title>
   <link rel="stylesheet" href="/public/dependencies/css/quill.bubble.css">
-{{end}}
+{{ end }}
 
-{{define "body"}}
-<h1>{{.document.Title}}</h1>
-<p>[<a href="/edit/{{.document.ID.Hex}}">Edit</a>]</p>
+{{ define "body" }}
+<h1>{{ .document.Title }}</h1>
+{{ if gt .user.Level 6 }}
+[<a href="/edit/{{.document.ID.Hex}}">Edit</a>]
+{{ end }}
 <div id="divQuill">{{.body}}</div>
-{{end}}
+{{ end }}
 
-{{define "scripts"}}
+{{ define "scripts" }}
   <script src="/public/dependencies/js/quill.min.js"></script>
   <script>
     let quill = new Quill('#divQuill', {
@@ -17,4 +19,4 @@
       theme: 'bubble'
     });
   </script>
-{{end}}
+{{ end }}
