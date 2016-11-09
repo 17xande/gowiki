@@ -25,4 +25,4 @@ volumes:
   mongo: {}
 networks:
   default:
-  driver: bridge
+    driver: bridge
