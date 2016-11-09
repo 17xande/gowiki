@@ -6,7 +6,7 @@ services:
     depends_on:
       - mongo
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
     volumes:
       - .:/go/src/app
     links:
@@ -16,6 +16,6 @@ services:
     volumes:
       - mongo:/data/db
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
 volumes:
   mongo: {}
