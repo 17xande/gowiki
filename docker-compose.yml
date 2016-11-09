@@ -5,17 +5,24 @@ services:
     image: gowiki:latest
     depends_on:
       - mongo
-    ports:
-      - "192.168.18.182:80:8080"
+    networks:
+      - default
+    # ports:
+    #   - "192.168.18.182:80:8080"
     volumes:
       - .:/go/src/app
-    links:
-      - mongo
+    # links:
+    #   - mongo
   mongo:
     image: mongo
     volumes:
       - mongo:/data/db
-    ports:
-      - "192.168.18.182:27017:27017"
+    networks:
+      - default
+    # ports:
+    #   - "192.168.18.182:27017:27017"
 volumes:
   mongo: {}
+networks:
+  default:
+  driver: bridge
