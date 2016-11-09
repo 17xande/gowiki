@@ -1,15 +1,21 @@
-{{define "head"}}
+{{ define "head" }}
   <title>SCMS: Users</title>
-{{end}}
+{{ end }}
 
-{{define "body"}}
-  <h1>Users:</h1>
-  <a href="/users/edit">New User</a>
-  <ul>
-    {{range $index, $user := .users}}
-      <li><a href="/users/edit/{{$user.ID.Hex}}">{{$user.Name}}</a></li>
-    {{end}}
-  </ul>
-{{end}}
+{{ define "body" }}
+<div class="card">
+  <div class="card-block">
+    <div class="cart-title"><h1>Users:</h1></div>
+    <div class="card-subtitle"><a href="/users/edit">New User</a></div>
+    <ul class="list-group">
+      {{ range $index, $user := .users }}
+        <li class="list-group-item"> 
+          <a href="/users/edit/{{ $user.ID.Hex }}">{{ $user.Name }}</a>
+        </li>
+      {{ end }}
+    </ul>
+  </div>
+</div>
+{{ end }}
 
-{{define "scripts"}}{{end}}
+{{ define "scripts" }}{{ end }}

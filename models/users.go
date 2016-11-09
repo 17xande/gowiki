@@ -62,9 +62,9 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpData := map[string]interface{}{
+		"exists":       exists,
 		"editUser":     editUser,
 		"user":         user,
-		"exists":       exists,
 		"flashError":   UserSession.Flashes("error"),
 		"flashWarning": UserSession.Flashes("warning"),
 		"flashAlert":   UserSession.Flashes("alert"),
