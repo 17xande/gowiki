@@ -11,7 +11,6 @@ import (
 type Config struct {
 	Databases map[string]DB     `toml:"databases"`
 	Secrets   map[string]string `toml:"secrets"`
-	Bools     map[string]bool   `toml:"bools"`
 }
 
 // Conf stores the apps configuration details

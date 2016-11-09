@@ -79,22 +79,22 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 
 // FirstUserHandler inserts a default user into the database
 func FirstUserHandler(w http.ResponseWriter, r *http.Request) {
-	if Conf.Bools["setup"] {
-		user := &User{
-			ID:       bson.NewObjectId(),
-			Name:     "Admin",
-			Email:    "admin@email.com",
-			Password: []byte("admin"),
-			Level:    7,
-			Admin:    true,
-			Tech:     false,
-		}
-
-		user.hashPassword()
-		user.saveUser()
-
-		Conf.Bools["setup"] = false
+	// if Conf.Bools["setup"] {
+	user := &User{
+		ID:       bson.NewObjectId(),
+		Name:     "Admin",
+		Email:    "admin@email.com",
+		Password: []byte("admin"),
+		Level:    7,
+		Admin:    true,
+		Tech:     false,
 	}
+
+	user.hashPassword()
+	user.saveUser()
+
+	// Conf.Bools["setup"] = false
+	// }
 	http.Redirect(w, r, "/login", http.StatusFound)
 }
 

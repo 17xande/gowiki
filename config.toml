@@ -1,4 +1,4 @@
-# SCMS Configuration
+# SCMS Configuration - Default values
 
 [databases]
   [databases.app]
@@ -14,10 +14,7 @@
   password = "scms_log"
 
 [secrets]
-# user password encryption salt
-passwordSalt = "You are the salt of the earth. But if the salt loses its saltiness, how can it be made salty again?"
-# cipher key for document encryption
-documentKey = "Take these documents, both the sealed and unsealed copies of the deed of purchase, and put them in a clay jar so they will last a long time." 
-
-[bools]
-setup = true
+# user password encryption salt - Change this value to something unique
+passwordSalt = "passwordSalt"
+# cipher key for document encryption - Change this value to something unique
+documentKey = "documentKey" 

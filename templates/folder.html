@@ -1,0 +1,24 @@
+{{ define "head" }}
+  <title>SCMS: Folder {{ .folder.Name }}</title>
+{{ end }}
+
+{{ define "body" }}
+<h1>Folder: {{ .folder.Name }}</h1>
+{{ if gt .user.Level 6 }}
+<a href="/folders/edit/{{ .folder.ID }}">Edit Folder</a>
+{{ end }}
+<div class="card">
+  <div class="card-block">
+    <div class="card-title"><h3>Documents</h3></div>
+    <ul class="list-group">
+      {{ range $index, $doc := .docs }}
+        <li class="list-group-item">
+          <a href="/documents/edit/{{ $doc.ID.Hex }}">{{ $doc.Title }}</a>
+        </li>
+      {{ end }}
+    </ul>
+  </div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}{{ end }}

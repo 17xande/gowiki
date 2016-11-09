@@ -10,7 +10,7 @@
     <ul class="list-group">
       {{ range $index, $folder := .folders }}
         <li class="list-group-item">
-          <a href="/folders/edit/{{ $folder.ID.Hex }}">{{ $folder.Name }}</a>
+          <a href="/folder/{{ $folder.ID.Hex }}">{{ $folder.Name }}</a>
         </li>
       {{ end }}
     </ul>

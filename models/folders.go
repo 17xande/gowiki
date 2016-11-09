@@ -23,8 +23,47 @@ type Folder struct {
 	// Folders     []Folder        `json:"-" bson:"-"` // doesn't get stored in the database
 }
 
-// FolderHandler handles the indexing of folders
+// FolderHandler handles the folder page, where all the documents in a folder are displayed
 func FolderHandler(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var docs *[]Document
+	f := &Folder{}
+	user := getUserFromSession()
+
+	_, id := path.Split(r.URL.Path)
+
+	if len(id) == 0 {
+		http.Redirect(w, r, "/folders/", http.StatusFound)
+		return
+	}
+
+	f, err = findFolder(id)
+	if err != nil {
+		ErrorLogger.Print("Error trying to find folder: {id: "+id+"}\n", err)
+		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+		http.Redirect(w, r, "/folders/", http.StatusFound)
+		return
+	}
+
+	docs, err = findDocsForFolder(f)
+	if err != nil {
+		ErrorLogger.Print("Error trying to find document for folder: {id: "+id+"}\n", err)
+		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+		http.Redirect(w, r, "/folders/", http.StatusFound)
+		return
+	}
+
+	data := map[string]interface{}{
+		"user":   user,
+		"folder": f,
+		"docs":   docs,
+	}
+
+	RenderTemplate(w, r, "folder", data)
+}
+
+// FoldersHandler handles the indexing of folders
+func FoldersHandler(w http.ResponseWriter, r *http.Request) {
 	folders, err := findAllFolders()
 	user := getUserFromSession()
 	if err != nil {
