@@ -35,6 +35,10 @@ func main() {
 	http.HandleFunc("/folders/edit/", models.SessionHandler(models.FolderEditHandler))
 	http.HandleFunc("/folders/save/", models.SessionHandler(models.FolderSaveHandler))
 
+	if models.Conf.Bools["setup"] {
+		http.HandleFunc("/setup/", models.FirstUserHandler)
+	}
+
 	p := os.Getenv("PORT")
 	if p == "" {
 		p = ":8080"
