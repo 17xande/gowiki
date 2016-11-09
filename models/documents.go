@@ -22,7 +22,7 @@ type Document struct {
 	Body     []byte          `json:"body"`
 	URL      string          `json:"url"`
 	Level    int             `json:"level"`
-	FolderID bson.ObjectId   `json:"folderID" bson:"folderID"`
+	FolderID bson.ObjectId   `json:"folderID" bson:"folderID,omitempty"`
 	UserIDs  []bson.ObjectId `json:"userIDs" bson:"userIDs"`
 }
 
@@ -215,14 +215,17 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 			UserSession.AddFlash("Error saving document settings. If this error persists, please contact support.", "error")
 		}
 
+		d = &Document{
+			Title: title,
+			Level: level,
+		}
+
 		for _, uID := range strUserIDs {
 			userIDs = append(userIDs, bson.ObjectIdHex(uID))
 		}
 
-		d = &Document{
-			Title:   title,
-			Level:   level,
-			UserIDs: userIDs,
+		if len(userIDs) > 0 {
+			d.UserIDs = userIDs
 		}
 
 		// if document is in a folder, write it to the folder
@@ -244,9 +247,10 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 		err = d.save()
 
 		if err != nil {
-			ErrorLogger.Print("Could not save page id: "+idHex+" \n ", err)
+			ErrorLogger.Print("Could not save page id: "+d.ID.Hex()+" \n ", err)
 			UserSession.AddFlash("Error! Could not save page. If this error persists please contact support", "error")
 			http.Redirect(w, r, "/", http.StatusFound)
+			return
 		}
 
 		InfoLogger.Print("Document saved {id: " + d.ID.Hex() + "}")

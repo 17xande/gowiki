@@ -17,7 +17,7 @@ type Folder struct {
 	Level     int             `json:"level"`
 	UserIDs   []bson.ObjectId `json:"userIDs" bson:"userIDs"`
 	Users     []User          `json:"-" bson:"-"` // doesn't get stored in the database
-	Documents []Document      //`json:"-" bson:"-"` // doesn't get stored in the database
+	Documents []Document      `json:"-" bson:"documents,omitempty"`
 	// We might have folders within folders in the future
 	// FolderIDs   []bson.ObjectId `json:"folderIDs" bson:"folderIDs"`
 	// Folders     []Folder        `json:"-" bson:"-"` // doesn't get stored in the database
