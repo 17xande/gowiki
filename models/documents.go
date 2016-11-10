@@ -71,7 +71,7 @@ func findAllDocs() (*[]Document, error) {
 	collection := session.DB(db).C(documentCol)
 	var documents []Document
 
-	err := collection.Find(nil).All(&documents)
+	err := collection.Find(nil).Sort("title").All(&documents)
 	if err != nil {
 		return nil, err
 	}
@@ -145,10 +145,14 @@ func ViewHandler(w http.ResponseWriter, r *http.Request, id string) {
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 
-	body, err = d.decrypt()
-	if err != nil {
-		InfoLogger.Print("Could not decrypt page id: "+id+"\nDisplaying blank body", err)
-		UserSession.AddFlash("There was a problem decrypting the page. If this error persists, please contact support.")
+	if user.Tech {
+		body = "<p>This is a sample text that tech users can see.</p><p>Shalom.</p>"
+	} else {
+		body, err = d.decrypt()
+		if err != nil {
+			InfoLogger.Print("Could not decrypt page id: "+id+"\nDisplaying blank body", err)
+			UserSession.AddFlash("There was a problem decrypting the page. If this error persists, please contact support.")
+		}
 	}
 
 	data := map[string]interface{}{

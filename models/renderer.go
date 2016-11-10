@@ -11,7 +11,13 @@ var templates = make(map[string]*template.Template)
 
 func init() {
 	temp := "templates/"
-	templates["index.html"] = template.Must(template.ParseFiles(temp+"index.html", temp+"base.html"))
+	funcMap := template.FuncMap{
+		"mod0": func(i int, mod int) bool {
+			return i%mod == 0
+		},
+	}
+
+	templates["index.html"] = template.Must(template.New("index").Funcs(funcMap).ParseFiles(temp+"index.html", temp+"base.html"))
 	templates["edit.html"] = template.Must(template.ParseFiles(temp+"edit.html", temp+"base.html"))
 	templates["view.html"] = template.Must(template.ParseFiles(temp+"view.html", temp+"base.html"))
 	templates["users.html"] = template.Must(template.ParseFiles(temp+"users.html", temp+"base.html"))

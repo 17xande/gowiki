@@ -177,7 +177,7 @@ func findAllFolders() (*[]Folder, error) {
 	collection := session.DB(db).C(col)
 	var folders []Folder
 
-	err := collection.Find(nil).All(&folders)
+	err := collection.Find(nil).Sort("name").All(&folders)
 	if err != nil {
 		return nil, err
 	}

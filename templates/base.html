@@ -8,14 +8,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" href="/public/dependencies/css/tether.min.css">
-    <link rel="stylesheet" href="/public/dependencies/css/bootstrap.min.css">
+    <!--<link rel="stylesheet" href="/public/dependencies/css/bootstrap.min.css">-->
     <link rel="stylesheet" href="/public/dependencies/css/bootstrap-flex.min.css">
     <link rel="stylesheet" href="/public/css/base.css">
     {{ template "head" . }}
   </head>
   <body>
     <nav class="navbar navbar-dark bg-inverse">
-      <a href="#" class="navbar-brand">SCMS</a>
+      <a href="#" class="navbar-brand">RGCMS</a>
       <ul class="nav navbar-nav">
         {{ if .user.Name }}
         <li class="nav-item active">
@@ -66,9 +66,7 @@
     {{ end }}
 
     <div class="container-fluid">
-      <div class="starter-template">
-        {{ template "body" . }}
-      </div>
+      {{ template "body" . }}
     </div>
 
     <script src="/public/dependencies/js/jquery.min.js"></script>

@@ -1,17 +1,16 @@
 {{ define "head" }}
-<title>(SCMS) Sensitive Content Management</title>
+<title>(RGCMS) Rivers Governance CMS</title>
 {{ end }}
 
 {{ define "body" }}
-<a href="/edit/">New Document</a>
-<h3>Folders:</h3>
-{{ range $i, $folder := .folders }}
-<div class="">
-  <a href="/folder/{{ $folder.ID.Hex }}" class="bubble">
-    <h5>{{ $folder.Name }}</h5>
-  </a>
+<div class="container-fluid container-layout"><h3>Folders:</h3></div>
+<div class="container-fluid container-layout">
+  <div class="row">
+    {{ range $i, $folder := .folders }}
+    <a href="/folder/{{ $folder.ID.Hex }}" class="col-xs bubble-link">{{ $folder.Name }}</a>
+    {{ end }}
+  </div>
 </div>
-{{ end }}
 {{ end }}
 
 {{ define "scripts" }}{{ end }}

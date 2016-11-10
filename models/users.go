@@ -101,7 +101,7 @@ func FirstUserHandler(w http.ResponseWriter, r *http.Request) {
 // UserSaveHandler handles the save user page
 func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 	admin := r.FormValue("admin") == "on"
-	tech := r.FormValue("admin") == "on"
+	tech := r.FormValue("tech") == "on"
 	password := r.FormValue("password")
 	level, err := strconv.Atoi(r.FormValue("level"))
 
@@ -223,7 +223,7 @@ func findAllUsers() (*[]User, error) {
 
 	collection := session.DB(db).C(userCol)
 	var users []User
-	err := collection.Find(nil).All(&users)
+	err := collection.Find(nil).Sort("name").All(&users)
 	if err != nil {
 		return nil, err
 	}

@@ -1,19 +1,22 @@
 /*body {
   padding-top: 50px;
 }*/
-.starter-template {
-  padding: 40px 15px;
+.container-layout {
+  padding: 1rem;
   text-align: center;
 }
 
 .chosen-select {
-  width: 250px;
+  min-width: 1rem;
+  max-width: 2rem;
 }
 
-.bubble {
+.bubble-link {
+  vertical-align: middle;
+  font-size: 1.3rem;
   min-width: 10rem;
   max-width: 12rem;
-  margin: 1rem;
+  margin: .7rem;
   padding: .7rem;
   border: 1px solid rgba(0,0,0,.2);
   border-radius: 2rem;
