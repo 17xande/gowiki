@@ -111,6 +111,12 @@ func findDocsForFolder(f *Folder) (*[]Document, error) {
 
 // IndexHandler handles the index page request
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
+	// check for invalid request
+	if r.URL.Path != "/" {
+		http.Redirect(w, r, "/notfound/", http.StatusNotFound)
+		return
+	}
+
 	user := getUserFromSession()
 	folders, err := findFoldersAndDocuments()
 	if err != nil {

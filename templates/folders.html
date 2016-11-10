@@ -6,11 +6,11 @@
 <div class="card">
   <div class="card-block">
     <div class="card-title"><h1>Folders:</h1></div>
-    <div class="card-subtitle"><a href="/folders/edit">New Folder</a></div>
+    <div class="card-subtitle"><a href="/folder/edit">New Folder</a></div>
     <ul class="list-group">
       {{ range $index, $folder := .folders }}
         <li class="list-group-item">
-          <a href="/folder/{{ $folder.ID.Hex }}">{{ $folder.Name }}</a>
+          <a href="/folder/view/{{ $folder.ID.Hex }}">{{ $folder.Name }}</a>
         </li>
       {{ end }}
     </ul>

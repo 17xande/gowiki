@@ -19,6 +19,7 @@ func init() {
 
 func main() {
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("./public"))))
+	http.HandleFunc("/notfound/", models.NotFoundHandler)
 	http.HandleFunc("/", models.SessionHandler(models.IndexHandler))
 	http.HandleFunc("/login", models.UserLoginHandler)
 	http.HandleFunc("/logout", models.UserLogoutHandler)
@@ -31,10 +32,10 @@ func main() {
 	// Handlers without security for adding the first user
 	// http.HandleFunc("/users/edit/", models.UserEditHandler)
 	// http.HandleFunc("/users/save/", models.UserSaveHandler)
-	http.HandleFunc("/folder/", models.SessionHandler(models.FolderHandler))
 	http.HandleFunc("/folders/", models.SessionHandler(models.FoldersHandler))
-	http.HandleFunc("/folders/edit/", models.SessionHandler(models.FolderEditHandler))
-	http.HandleFunc("/folders/save/", models.SessionHandler(models.FolderSaveHandler))
+	http.HandleFunc("/folder/view/", models.SessionHandler(models.FolderHandler))
+	http.HandleFunc("/folder/edit/", models.SessionHandler(models.FolderEditHandler))
+	http.HandleFunc("/folder/save/", models.SessionHandler(models.FolderSaveHandler))
 
 	p := os.Getenv("PORT")
 	if p == "" {

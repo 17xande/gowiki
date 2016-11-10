@@ -17,6 +17,7 @@ func init() {
 		},
 	}
 
+	templates["notFound.html"] = template.Must(template.ParseFiles(temp+"notFound.html", temp+"base.html"))
 	templates["index.html"] = template.Must(template.New("index").Funcs(funcMap).ParseFiles(temp+"index.html", temp+"base.html"))
 	templates["edit.html"] = template.Must(template.ParseFiles(temp+"edit.html", temp+"base.html"))
 	templates["view.html"] = template.Must(template.ParseFiles(temp+"view.html", temp+"base.html"))
@@ -57,4 +58,9 @@ func MakeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 
 		fn(w, r, id)
 	}
+}
+
+// NotFoundHandler handles requests for pages that don't exist
+func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	templates["notFound.html"].ExecuteTemplate(w, "base", nil)
 }

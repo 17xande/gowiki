@@ -7,7 +7,7 @@
 <div class="container-fluid container-layout">
   <div class="row">
     {{ range $i, $folder := .folders }}
-    <a href="/folder/{{ $folder.ID.Hex }}" class="col-xs bubble-link">{{ $folder.Name }}</a>
+    <a href="/folder/view/{{ $folder.ID.Hex }}" class="col-xs bubble-link">{{ $folder.Name }}</a>
     {{ end }}
   </div>
 </div>
