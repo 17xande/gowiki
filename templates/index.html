@@ -6,17 +6,10 @@
 <a href="/edit/">New Document</a>
 <h3>Folders:</h3>
 {{ range $i, $folder := .folders }}
-<div class="card">
-  <div class="card-block">
-    <div class="card-title"><h5>{{ $folder.Name }}</h5></div>
-    <ul class="list-group">
-      {{ range $j, $document := $folder.Documents }}
-      <li class="list-group-item">
-        <a href="/view/{{ $document.ID.Hex }}">{{ $document.Title }}</a>
-      </li>
-      {{ end }}
-    </ul>
-  </div>
+<div class="">
+  <a href="/folder/{{ $folder.ID.Hex }}" class="bubble">
+    <h5>{{ $folder.Name }}</h5>
+  </a>
 </div>
 {{ end }}
 {{ end }}
