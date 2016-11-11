@@ -15,10 +15,10 @@ type User struct {
 	ID       bson.ObjectId `json:"id" bson:"_id"`
 	Name     string        `json:"name"`
 	Email    string        `json:"email"`
-	Password []byte        `json:"password"`
 	Level    int           `json:"level"`
 	Admin    bool          `json:"admin"`
 	Tech     bool          `json:"tech"`
+	Password []byte        `json:"password"`
 }
 
 const userCol = "users"
@@ -48,17 +48,21 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 	editUser := &User{}
 	exists := false
 	user := getUserFromSession()
+	page := "userEdit"
 
 	_, id := path.Split(r.URL.Path)
 
 	if len(id) > 0 {
 		editUser, err = findUser(id)
 		exists = true
-	}
 
-	if err != nil {
-		ErrorLogger.Print("Error trying to find user {id: "+id+"}", err)
-		UserSession.AddFlash("Error. User could not be retrieved.", "error")
+		if err != nil {
+			ErrorLogger.Print("Error trying to find user {id: "+id+"}", err)
+			UserSession.AddFlash("Error. User could not be retrieved.", "error")
+			err = nil
+		} else if editUser.ID == user.ID { // check if the user is editing his own account
+			page = "account"
+		}
 	}
 
 	tmpData := map[string]interface{}{
@@ -68,6 +72,7 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 		"flashError":   UserSession.Flashes("error"),
 		"flashWarning": UserSession.Flashes("warning"),
 		"flashAlert":   UserSession.Flashes("alert"),
+		"page":         page,
 	}
 
 	err = templates["userEdit.html"].ExecuteTemplate(w, "base", tmpData)
@@ -91,7 +96,7 @@ func FirstUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user.hashPassword()
-	user.saveUser()
+	// user.insert()
 
 	// Conf.Bools["setup"] = false
 	// }
@@ -100,51 +105,61 @@ func FirstUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // UserSaveHandler handles the save user page
 func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
-	admin := r.FormValue("admin") == "on"
-	tech := r.FormValue("tech") == "on"
-	password := r.FormValue("password")
-	level, err := strconv.Atoi(r.FormValue("level"))
+	var u *User
 
-	if err != nil {
-		ErrorLogger.Print("Could not convert 'level' to int. ", err)
+	if r.Method == "POST" {
+		r.ParseForm()
+		password := r.Form["password"][0]
+		admin := len(r.Form["admin"]) > 0 && r.Form["admin"][0] == "on"
+		tech := len(r.Form["tech"]) > 0 && r.Form["tech"][0] == "on"
+		level, err := strconv.Atoi(r.Form["level"][0])
+
+		if err != nil {
+			ErrorLogger.Print("Could not convert 'level' to int. ", err)
+			level = 0
+			err = nil
+		}
+
+		u = &User{
+			Name:  r.Form["name"][0],
+			Email: r.Form["email"][0],
+			Level: level,
+			Admin: admin,
+			Tech:  tech,
+		}
+
+		// If no new password is supplied, don't change the old one.
+		if password != "" {
+			u.Password = []byte(password)
+			err := u.hashPassword()
+
+			if err != nil {
+				ErrorLogger.Print("Could not hash user's password. ", err)
+			}
+		}
+
+		_, id := path.Split(r.URL.Path)
+		if id != "" {
+			u.ID = bson.ObjectIdHex(id)
+		} else {
+			u.ID = bson.NewObjectId()
+		}
+
+		err = u.save()
+		if err != nil {
+			ErrorLogger.Print("Could not save user. ", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		InfoLogger.Print("User saved: {id: " + u.ID.Hex() + "}")
 	}
 
-	user := &User{
-		Name:  r.FormValue("name"),
-		Email: r.FormValue("email"),
-		Level: level,
-		Admin: admin,
-		Tech:  tech,
-	}
-
-	// If no new password is supplied, don't change the old one.
-	if password != "" {
-		user.Password = []byte(password)
-		err = user.hashPassword()
-	}
-
-	if err != nil {
-		ErrorLogger.Print("Could not hash user's password. ", err)
-	}
-
-	// we can ignore the directory result of this function
-	_, id := path.Split(r.URL.Path)
-
-	if id != "" {
-		user.ID = bson.ObjectIdHex(id)
+	if u.Admin {
+		http.Redirect(w, r, "/users/", http.StatusFound)
 	} else {
-		user.ID = bson.NewObjectId()
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
-
-	err = user.saveUser()
-	if err != nil {
-		ErrorLogger.Print("Could not save user. ", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	InfoLogger.Print("User saved: ", user.Name)
-	http.Redirect(w, r, "/users/", http.StatusFound)
 }
 
 // UserLoginHandler handles login attempts
@@ -271,19 +286,46 @@ func (user *User) authenticate() (found bool, err error) {
 	return found, err
 }
 
-func (user *User) saveUser() error {
+func (user *User) save() error {
 	session := dbConnect()
 	defer session.Close()
 	collection := session.DB(db).C(userCol)
 
-	info, err := collection.UpsertId(user.ID, &user)
-
-	// If there was no user id, grab the DB generated id
-	if len(user.ID.Hex()) == 0 {
-		user.ID = info.UpsertedId.(bson.ObjectId)
+	update := bson.M{
+		"name":  user.Name,
+		"email": user.Email,
+		"level": user.Level,
+		"admin": user.Admin,
+		"tech":  user.Tech,
 	}
 
+	if len(user.Password) > 0 {
+		update["password"] = user.Password
+	}
+
+	_, err := collection.UpsertId(user.ID, bson.M{"$set": update})
+
 	return err
+}
+
+func (user *User) update() error {
+	session := dbConnect()
+	defer session.Close()
+	collection := session.DB(db).C(userCol)
+
+	update := bson.M{
+		"name":  user.Name,
+		"email": user.Email,
+		"level": user.Level,
+		"admin": user.Admin,
+		"tech":  user.Tech,
+	}
+
+	if len(user.Password) > 0 {
+		update["password"] = user.Password
+	}
+
+	return collection.UpdateId(user.ID, bson.M{"$set": update})
 }
 
 func (user *User) hashPassword() (err error) {

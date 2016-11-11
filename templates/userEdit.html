@@ -8,7 +8,7 @@
       <input id="hdnId" name="userId" type="hidden" value="{{ .editUser.ID.Hex }}">
     <div class="form-group">
       <label for="txtName">Name:</label>
-      <input id="txtName" name="name" type="text" class="form-control" value="{{ .editUser.Name }}">
+      <input id="txtName" name="name" type="text" class="form-control" autofocus value="{{ .editUser.Name }}">
     </div><div class="form-group">
       <label for="txtEmail">Email:</label>
       <input id="txtEmail" name="email" type="text" class="form-control" value="{{ .editUser.Email }}">

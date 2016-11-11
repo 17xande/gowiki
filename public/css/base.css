@@ -7,8 +7,8 @@
 }
 
 .chosen-select {
-  min-width: 1rem;
-  max-width: 2rem;
+  min-width: 10rem;
+  max-width: 20rem;
 }
 
 .bubble-link {

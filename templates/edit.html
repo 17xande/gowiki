@@ -6,7 +6,7 @@
 
 {{define "body"}}
 <form id="frmContent" action="/save/{{.document.ID.Hex}}" method="POST">
-  <h1>Editing <input id="txtTitle" name="title" type="text" value="{{.document.Title}}"></h1>
+  <h1>Editing <input id="txtTitle" name="title" type="text" autofocus value="{{.document.Title}}"></h1>
   <div id="divQuill">{{.body}}</div>
   <input id="hdnBody" type="hidden" name="body">
   <div>

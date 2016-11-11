@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 
 	"gopkg.in/mgo.v2/bson"
+	"time"
 )
 
 // Document represents a document on the site
@@ -22,6 +23,8 @@ type Document struct {
 	Body     []byte          `json:"body"`
 	URL      string          `json:"url"`
 	Level    int             `json:"level"`
+	Created  time.Time       `json:"created"`
+	Edited   time.Time       `json:"edited"`
 	FolderID bson.ObjectId   `json:"folderID" bson:"folderID,omitempty"`
 	UserIDs  []bson.ObjectId `json:"userIDs" bson:"userIDs"`
 }
@@ -92,22 +95,6 @@ func findDocsForFolder(f *Folder) (*[]Document, error) {
 
 	return &docs, nil
 }
-
-// IndexHandler handles the index page request
-// func IndexHandler(w http.ResponseWriter, r *http.Request) {
-// 	user := getUserFromSession()
-// 	documents, err := findAllDocs()
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 	}
-
-// 	data := map[string]interface{}{
-// 		"documents": documents,
-// 		"user":      user,
-// 	}
-
-// 	RenderTemplate(w, r, "index", data)
-// }
 
 // IndexHandler handles the index page request
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
@@ -232,16 +219,19 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 		body := template.HTML(r.Form["body"][0])
 		strUserIDs := r.Form["users"]
 		strFolderID := r.Form["folder"][0]
+
+		d = &Document{
+			Title: title,
+			Edited: time.Now(),
+		}
+		
 		level, err := strconv.Atoi(r.Form["level"][0])
 
 		if err != nil {
 			ErrorLogger.Print("Error parsing document level POST. {id: "+idHex+"} ", err.Error())
-			UserSession.AddFlash("Error saving document settings. If this error persists, please contact support.", "error")
-		}
-
-		d = &Document{
-			Title: title,
-			Level: level,
+			err = nil
+		} else {
+			d.Level = level
 		}
 
 		for _, uID := range strUserIDs {
@@ -260,12 +250,14 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 		err = d.encrypt(body)
 		if err != nil {
 			ErrorLogger.Print("Could not encrypt body of document id: "+idHex+" \n ", err)
+			err = nil
 		}
 
 		if idHex != "" {
 			d.ID = bson.ObjectIdHex(idHex)
 		} else {
 			d.ID = bson.NewObjectId()
+			d.Created = time.Now()
 		}
 
 		err = d.save()
@@ -274,6 +266,7 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 			ErrorLogger.Print("Could not save page id: "+d.ID.Hex()+" \n ", err)
 			UserSession.AddFlash("Error! Could not save page. If this error persists please contact support", "error")
 			http.Redirect(w, r, "/", http.StatusFound)
+			err = nil
 			return
 		}
 

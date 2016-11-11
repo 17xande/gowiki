@@ -8,7 +8,7 @@
   <form id="frmFolder" action="/folders/save/{{ .folder.ID.Hex}}" method="POST">
     <input id="hdnId" name="folderId" type="hidden" value="{{ .folder.ID.Hex }}">
     <label for="txtName">Name:</label>
-    <input id="txtName" name="name" type="text" value="{{ .folder.Name }}">
+    <input id="txtName" name="name" type="text" autofocus value="{{ .folder.Name }}">
     <label for="numLevel">Level:</label>
     <input id="numLevel" name="level" type="number" value="{{ .folder.Level }}">
     <h3>Users in folder:</h3>

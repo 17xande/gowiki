@@ -4,11 +4,15 @@
 {{ end }}
 
 {{ define "body" }}
-<h1>{{ .document.Title }}</h1>
-{{ if gt .user.Level 6 }}
-[<a href="/edit/{{.document.ID.Hex}}">Edit</a>]
-{{ end }}
-<div id="divQuill">{{.body}}</div>
+  <h1>{{ .document.Title }}</h1>
+  {{ if gt .user.Level 6 }}
+    [<a href="/edit/{{.document.ID.Hex}}">Edit</a>]
+  {{ end }}
+  <div id="divQuill">{{.body}}</div>
+  <div id="divData">
+    <span>Created: {{ timeFormat .document.Created }}</span>
+    <span>Last Edited: {{ timeFormat .document.Edited }}</span>
+  </div>
 {{ end }}
 
 {{ define "scripts" }}

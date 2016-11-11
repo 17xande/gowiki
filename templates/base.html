@@ -15,23 +15,18 @@
   </head>
   <body>
     <nav class="navbar navbar-dark bg-inverse">
-      <a href="#" class="navbar-brand">RGCMS</a>
+      <a href="/" class="navbar-brand">RGCMS</a>
       <ul class="nav navbar-nav">
-        {{ if .user.Name }}
-        <li class="nav-item active">
-          <a href="/" class="nav-link">Documents</a>
-        </li>
-        {{ end }}
         {{ if .user.Admin }}
-        <li class="nav-item">
+        <li class="nav-item {{ if eq .page "folders" }}active{{ end }}">
           <a href="/folders/" class="nav-link">Folders</a>
         </li>
-        <li class="nav-item">
+        <li class="nav-item {{ if eq .page "users" }}active{{ end }}">
           <a href="/users/" class="nav-link">Users</a>
         </li>
         {{ end }}
         {{ if .user.Name }}
-        <li class="nav-item">
+        <li class="nav-item {{ if eq .page "account" }}active{{ end }}">
           <a href="/users/edit/{{.user.ID.Hex}}" class="nav-link">Account</a>
         </li>
         <li class="nav-item">

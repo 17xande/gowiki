@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"time"
 )
 
 // var templates = template.Must(template.ParseGlob("templates/*"))
@@ -15,12 +16,15 @@ func init() {
 		"mod0": func(i int, mod int) bool {
 			return i%mod == 0
 		},
+		"timeFormat": func(d time.Time) string {
+			return d.Format(time.RFC822)
+		},
 	}
 
 	templates["notFound.html"] = template.Must(template.ParseFiles(temp+"notFound.html", temp+"base.html"))
 	templates["index.html"] = template.Must(template.New("index").Funcs(funcMap).ParseFiles(temp+"index.html", temp+"base.html"))
 	templates["edit.html"] = template.Must(template.ParseFiles(temp+"edit.html", temp+"base.html"))
-	templates["view.html"] = template.Must(template.ParseFiles(temp+"view.html", temp+"base.html"))
+	templates["view.html"] = template.Must(template.New("view").Funcs(funcMap).ParseFiles(temp+"view.html", temp+"base.html"))
 	templates["users.html"] = template.Must(template.ParseFiles(temp+"users.html", temp+"base.html"))
 	templates["userEdit.html"] = template.Must(template.ParseFiles(temp+"userEdit.html", temp+"base.html"))
 	templates["folder.html"] = template.Must(template.ParseFiles(temp+"folder.html", temp+"base.html"))
@@ -38,6 +42,10 @@ func RenderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, data ma
 	data["flashDanger"] = UserSession.Flashes("danger")
 	// Session must be saved to empty the flash messages
 	UserSession.Save(r, w)
+
+	if data["page"] == nil {
+		data["page"] = tmpl
+	}
 
 	err := templates[tmpl+".html"].ExecuteTemplate(w, "base", data)
 	if err != nil {
