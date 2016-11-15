@@ -101,8 +101,9 @@ func FirstUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // UserSaveHandler handles the save user page
 func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
-	var u *User
 	var exists bool
+	var u *User
+	user := getUserFromSession()
 
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -171,8 +172,8 @@ func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 		UserSession.Save(r, w)
 	}
 
-	if u.Admin {
-		http.Redirect(w, r, "/users/", http.StatusFound)
+	if user.Admin {
+		http.Redirect(w, r, "/users/edit/", http.StatusFound)
 	} else {
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
