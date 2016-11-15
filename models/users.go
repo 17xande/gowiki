@@ -30,7 +30,9 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ErrorLogger.Print("Error trying to find all users: \n", err)
 		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+		UserSession.Save(r, w)
 		http.Redirect(w, r, "/", http.StatusFound)
+		err = nil
 		return
 	}
 
@@ -59,6 +61,7 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			ErrorLogger.Print("Error trying to find user {id: "+id+"}", err)
 			UserSession.AddFlash("Error. User could not be retrieved.", "error")
+			UserSession.Save(r, w)
 			err = nil
 		} else if editUser.ID == user.ID { // check if the user is editing his own account
 			page = "account"
@@ -136,7 +139,8 @@ func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if exists {
-				UserSession.AddFlash("Sorry, this user already exists.", "warning")
+				UserSession.AddFlash("Sorry, a user with this name or email already exists.", "warning")
+				UserSession.Save(r, w)
 				InfoLogger.Print("User tried to add a duplicate user: {name: " + u.Name + ", email: " + u.Email + "}")
 				http.Redirect(w, r, "/users/edit/", http.StatusFound)
 				return
@@ -164,6 +168,7 @@ func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 
 		InfoLogger.Print("User saved: {id: " + u.ID.Hex() + "}")
 		UserSession.AddFlash("User saved successfully", "success")
+		UserSession.Save(r, w)
 	}
 
 	if u.Admin {

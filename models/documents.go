@@ -128,6 +128,8 @@ func ViewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	if err != nil {
 		ErrorLogger.Print("Document not found. id: "+id, err)
 		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+		UserSession.Save(r, w)
+		err = nil
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
@@ -135,6 +137,7 @@ func ViewHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 	if !levelCheck(w, r, d) {
 		UserSession.AddFlash("Sorry, but you don't have permission to view this document", "warning")
+		UserSession.Save(r, w)
 		InfoLogger.Print("User tried to access restricted document: {userID: " + user.ID.Hex() + ", documentID: " + id + "}")
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
@@ -146,6 +149,8 @@ func ViewHandler(w http.ResponseWriter, r *http.Request, id string) {
 		if err != nil {
 			InfoLogger.Print("Could not decrypt page id: "+id+"\nDisplaying blank body", err)
 			UserSession.AddFlash("There was a problem decrypting the page. If this error persists, please contact support.")
+			UserSession.Save(r, w)
+			err = nil
 		}
 	}
 
@@ -170,6 +175,7 @@ func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
 		if err != nil {
 			ErrorLogger.Print("Page not found. id: "+id, err)
 			UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+			UserSession.Save(r, w)
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -182,6 +188,8 @@ func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
 		if err != nil {
 			ErrorLogger.Print("Could not decrypt page id: "+id+" \nDisplaying blank body\n ", err)
 			UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+			UserSession.Save(r, w)
+			err = nil
 		}
 	}
 
@@ -273,6 +281,7 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 		if err != nil {
 			ErrorLogger.Print("Could not save page id: "+d.ID.Hex()+" \n ", err)
 			UserSession.AddFlash("Error! Could not save page. If this error persists please contact support", "error")
+			UserSession.Save(r, w)
 			http.Redirect(w, r, "/", http.StatusFound)
 			err = nil
 			return

@@ -36,11 +36,18 @@ func init() {
 
 // RenderTemplate renders the given template and handles flash messages
 func RenderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, data map[string]interface{}) {
-
-	data["flashSuccess"] = UserSession.Flashes("success")
-	data["flashInfo"] = UserSession.Flashes("info")
-	data["flashWarning"] = UserSession.Flashes("warning")
-	data["flashDanger"] = UserSession.Flashes("danger")
+	if flashSuccess := UserSession.Flashes("success"); len(flashSuccess) > 0 {
+		data["flashSuccess"] = flashSuccess[0]
+	}
+	if flashInfo := UserSession.Flashes("info"); len(flashInfo) > 0 {
+		data["flashInfo"] = flashInfo[0]
+	}
+	if flashWarning := UserSession.Flashes("warning"); len(flashWarning) > 0 {
+		data["flashWarning"] = flashWarning[0]
+	}
+	if flashDanger := UserSession.Flashes("danger"); len(flashDanger) > 0 {
+		data["flashDanger"] = flashDanger[0]
+	}
 	// Session must be saved to empty the flash messages
 	UserSession.Save(r, w)
 

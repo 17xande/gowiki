@@ -41,7 +41,9 @@ func FolderHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ErrorLogger.Print("Error trying to find folder: {id: "+id+"}\n", err)
 		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+		UserSession.Save(r, w)
 		http.Redirect(w, r, "/folders/", http.StatusFound)
+		err = nil
 		return
 	}
 
@@ -49,7 +51,9 @@ func FolderHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ErrorLogger.Print("Error trying to find document for folder: {id: "+id+"}\n", err)
 		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+		UserSession.Save(r, w)
 		http.Redirect(w, r, "/folders/", http.StatusFound)
+		err = nil
 		return
 	}
 
@@ -69,7 +73,9 @@ func FoldersHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ErrorLogger.Print("Error trying to find all users: \n", err)
 		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+		UserSession.Save(r, w)
 		http.Redirect(w, r, "/", http.StatusFound)
+		err = nil
 		return
 	}
 
@@ -99,6 +105,7 @@ func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
 		UserSession.AddFlash("Error. Folder could not be retrieved.", "error")
+		UserSession.Save(r, w)
 		err = nil
 	}
 
@@ -107,6 +114,7 @@ func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
 		UserSession.AddFlash("Error trying to find users for this folder {id: "+id+"}", "error")
+		UserSession.Save(r, w)
 		err = nil
 	}
 
@@ -124,6 +132,8 @@ func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ErrorLogger.Print("Error trying to display folder {id: "+id+"}", err)
 		UserSession.AddFlash("Error. Folder could not be displayed.", "error")
+		UserSession.Save(r, w)
+		err = nil
 	}
 }
 
@@ -142,6 +152,8 @@ func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			ErrorLogger.Print("Error parsing folder level POST. {id: "+id+"} ", err.Error())
 			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.", "error")
+			UserSession.Save(r, w)
+			err = nil
 		}
 
 		for _, uID := range strUserIDs {
@@ -165,6 +177,8 @@ func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			ErrorLogger.Print("Error saving folder to database. {id: "+id+"} ", err.Error())
 			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.", "error")
+			UserSession.Save(r, w)
+			err = nil
 		}
 
 		InfoLogger.Print("Folder saved {id: " + f.ID.Hex() + "}")
