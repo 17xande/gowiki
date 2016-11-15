@@ -66,20 +66,13 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpData := map[string]interface{}{
-		"exists":       exists,
-		"editUser":     editUser,
-		"user":         user,
-		"flashError":   UserSession.Flashes("error"),
-		"flashWarning": UserSession.Flashes("warning"),
-		"flashAlert":   UserSession.Flashes("alert"),
-		"page":         page,
+		"exists":   exists,
+		"editUser": editUser,
+		"user":     user,
+		"page":     page,
 	}
 
-	err = templates["userEdit.html"].ExecuteTemplate(w, "base", tmpData)
-	if err != nil {
-		ErrorLogger.Print("Error trying to display user {id: "+id+"}", err)
-		UserSession.AddFlash("Error. User could not be displayed.", "error")
-	}
+	RenderTemplate(w, r, "userEdit", tmpData)
 }
 
 // FirstUserHandler inserts a default user into the database
@@ -106,9 +99,12 @@ func FirstUserHandler(w http.ResponseWriter, r *http.Request) {
 // UserSaveHandler handles the save user page
 func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 	var u *User
+	var exists bool
 
 	if r.Method == "POST" {
 		r.ParseForm()
+		name := r.Form["name"][0]
+		email := r.Form["email"][0]
 		password := r.Form["password"][0]
 		admin := len(r.Form["admin"]) > 0 && r.Form["admin"][0] == "on"
 		tech := len(r.Form["tech"]) > 0 && r.Form["tech"][0] == "on"
@@ -121,11 +117,32 @@ func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		u = &User{
-			Name:  r.Form["name"][0],
-			Email: r.Form["email"][0],
+			Name:  name,
+			Email: email,
 			Level: level,
 			Admin: admin,
 			Tech:  tech,
+		}
+
+		_, id := path.Split(r.URL.Path)
+		if id != "" { // existing user
+			u.ID = bson.ObjectIdHex(id)
+		} else { // new user
+			// check if user already exists in the database
+			exists, err = u.exists()
+			if err != nil {
+				ErrorLogger.Print("Error lookin for duplicate user: {name: "+u.Name+", email: "+u.Email+"}", err)
+				err = nil
+			}
+
+			if exists {
+				UserSession.AddFlash("Sorry, this user already exists.", "warning")
+				InfoLogger.Print("User tried to add a duplicate user: {name: " + u.Name + ", email: " + u.Email + "}")
+				http.Redirect(w, r, "/users/edit/", http.StatusFound)
+				return
+			}
+
+			u.ID = bson.NewObjectId()
 		}
 
 		// If no new password is supplied, don't change the old one.
@@ -138,13 +155,6 @@ func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		_, id := path.Split(r.URL.Path)
-		if id != "" {
-			u.ID = bson.ObjectIdHex(id)
-		} else {
-			u.ID = bson.NewObjectId()
-		}
-
 		err = u.save()
 		if err != nil {
 			ErrorLogger.Print("Could not save user. ", err)
@@ -153,6 +163,7 @@ func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		InfoLogger.Print("User saved: {id: " + u.ID.Hex() + "}")
+		UserSession.AddFlash("User saved successfully", "success")
 	}
 
 	if u.Admin {
@@ -275,8 +286,8 @@ func findUsers(ids *[]bson.ObjectId) (users *[]User, err error) {
 func (user *User) authenticate() (found bool, err error) {
 	session := dbConnect()
 	defer session.Close()
-
 	collection := session.DB(db).C(userCol)
+
 	err = collection.Find(bson.M{
 		"email":    user.Email,
 		"password": user.Password,
@@ -308,26 +319,6 @@ func (user *User) save() error {
 	return err
 }
 
-func (user *User) update() error {
-	session := dbConnect()
-	defer session.Close()
-	collection := session.DB(db).C(userCol)
-
-	update := bson.M{
-		"name":  user.Name,
-		"email": user.Email,
-		"level": user.Level,
-		"admin": user.Admin,
-		"tech":  user.Tech,
-	}
-
-	if len(user.Password) > 0 {
-		update["password"] = user.Password
-	}
-
-	return collection.UpdateId(user.ID, bson.M{"$set": update})
-}
-
 func (user *User) hashPassword() (err error) {
 	var key []byte
 	// TODO: Move the salt into a non-committed file so that it does not end up on github
@@ -337,11 +328,21 @@ func (user *User) hashPassword() (err error) {
 	return err
 }
 
-// func (user *User) in(userIDs []bson.ObjectId) bool {
-// 	for _, id := range userIDs {
-// 		if user.ID == id {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
+// Checks if a user with this name or email address already exists.
+func (user *User) exists() (exists bool, err error) {
+	session := dbConnect()
+	defer session.Close()
+	collection := session.DB(db).C(userCol)
+	count := 0
+
+	query := bson.M{
+		"$or": []bson.M{
+			bson.M{"name": user.Name},
+			bson.M{"email": user.Email},
+		},
+	}
+	count, err = collection.Find(query).Count()
+	exists = count > 0
+
+	return exists, err
+}

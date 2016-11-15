@@ -99,6 +99,7 @@ func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
 		UserSession.AddFlash("Error. Folder could not be retrieved.", "error")
+		err = nil
 	}
 
 	users, err = findAllUsers()
@@ -106,6 +107,7 @@ func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
 		UserSession.AddFlash("Error trying to find users for this folder {id: "+id+"}", "error")
+		err = nil
 	}
 
 	tmpData := map[string]interface{}{
@@ -118,7 +120,7 @@ func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
 		"flashAlert":   UserSession.Flashes("alert"),
 	}
 
-	err = templates["folderEdit.html"].ExecuteTemplate(w, "base", tmpData)
+	RenderTemplate(w, r, "folderEdit", tmpData)
 	if err != nil {
 		ErrorLogger.Print("Error trying to display folder {id: "+id+"}", err)
 		UserSession.AddFlash("Error. Folder could not be displayed.", "error")
@@ -165,7 +167,7 @@ func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
 			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.", "error")
 		}
 
-		InfoLogger.Print("Folder saved {id: " + id + "}")
+		InfoLogger.Print("Folder saved {id: " + f.ID.Hex() + "}")
 	}
 
 	http.Redirect(w, r, "/folders/", http.StatusFound)

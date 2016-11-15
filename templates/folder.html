@@ -6,7 +6,8 @@
 <div class="container-fluid container-layout">
   <h1>Folder: {{ .folder.Name }}</h1>
   {{ if gt .user.Level 6 }}
-  <a href="/folder/edit/{{ .folder.ID }}">Edit Folder</a>
+  <a href="/folder/edit/{{ .folder.ID.Hex }}">Edit Folder</a>
+  <a href="/edit/?folder-id={{ .folder.ID.Hex }}">New Document</a>
   {{ end }}
 </div>
 <div class="container-fluid container-layout">

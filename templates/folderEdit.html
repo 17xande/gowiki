@@ -5,7 +5,7 @@
 
 {{ define "body" }}
   <h1>{{ if .exists }}Edit{{ else }}New{{ end }} Folder</h1>
-  <form id="frmFolder" action="/folders/save/{{ .folder.ID.Hex}}" method="POST">
+  <form id="frmFolder" action="/folder/save/{{ .folder.ID.Hex}}" method="POST">
     <input id="hdnId" name="folderId" type="hidden" value="{{ .folder.ID.Hex }}">
     <label for="txtName">Name:</label>
     <input id="txtName" name="name" type="text" autofocus value="{{ .folder.Name }}">

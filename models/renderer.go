@@ -36,6 +36,7 @@ func init() {
 
 // RenderTemplate renders the given template and handles flash messages
 func RenderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, data map[string]interface{}) {
+
 	data["flashSuccess"] = UserSession.Flashes("success")
 	data["flashInfo"] = UserSession.Flashes("info")
 	data["flashWarning"] = UserSession.Flashes("warning")
@@ -49,6 +50,7 @@ func RenderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, data ma
 
 	err := templates[tmpl+".html"].ExecuteTemplate(w, "base", data)
 	if err != nil {
+		ErrorLogger.Print("Error trying to render page: "+tmpl, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

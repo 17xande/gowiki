@@ -12,8 +12,9 @@ import (
 
 	"golang.org/x/crypto/scrypt"
 
-	"gopkg.in/mgo.v2/bson"
 	"time"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 // Document represents a document on the site
@@ -187,11 +188,18 @@ func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
 	users, err := findAllUsers()
 	if err != nil {
 		ErrorLogger.Print("Could not find all users. Document {id: "+id+"} ", err)
+		err = nil
 	}
 
 	folders, err := findAllFolders()
 	if err != nil {
 		ErrorLogger.Print("Could not find all folders. Document {id: "+id+"} ", err)
+		err = nil
+	}
+
+	query := r.URL.Query()
+	if query["folder-id"][0] != "" {
+		d.FolderID = bson.ObjectIdHex(query["folder-id"][0])
 	}
 
 	data := map[string]interface{}{
@@ -221,10 +229,10 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 		strFolderID := r.Form["folder"][0]
 
 		d = &Document{
-			Title: title,
+			Title:  title,
 			Edited: time.Now(),
 		}
-		
+
 		level, err := strconv.Atoi(r.Form["level"][0])
 
 		if err != nil {
