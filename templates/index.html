@@ -7,7 +7,10 @@
 <div class="container-fluid container-layout">
   <div class="row">
     {{ range $i, $folder := .folders }}
-    <a href="/folder/view/{{ $folder.ID.Hex }}" class="col-xs bubble-link">{{ $folder.Name }}</a>
+      <div class="col-xs bubble-col">
+        <a href="/folder/view/{{ $folder.ID.Hex }}" class="col-xs bubble-link">{{ $folder.Name }}</a>
+      </div>
+    <!--{{ if mod0 $i 4 }}</div><div class="row">{{ end }}-->
     {{ end }}
   </div>
 </div>
