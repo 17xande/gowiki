@@ -290,7 +290,12 @@ func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
 		InfoLogger.Print("Document saved {id: " + d.ID.Hex() + "}")
 	}
 
-	http.Redirect(w, r, "/view/"+d.ID.Hex(), http.StatusFound)
+	redir := "/view/" + d.ID.Hex()
+	if d.FolderID.Hex() != "" {
+		redir = "/folder/view/" + d.FolderID.Hex()
+	}
+
+	http.Redirect(w, r, redir, http.StatusFound)
 }
 
 func (d *Document) encrypt(body template.HTML) (err error) {
