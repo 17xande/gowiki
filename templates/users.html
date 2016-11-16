@@ -1,19 +1,14 @@
 {{ define "head" }}
-  <title>SCMS: Users</title>
+  <title>RGCMS: Users</title>
 {{ end }}
 
 {{ define "body" }}
-<div class="card">
-  <div class="card-block">
-    <div class="cart-title"><h1>Users:</h1></div>
-    <div class="card-subtitle"><a href="/users/edit">New User</a></div>
-    <ul class="list-group">
-      {{ range $index, $user := .users }}
-        <li class="list-group-item"> 
-          <a href="/users/edit/{{ $user.ID.Hex }}">{{ $user.Name }}</a>
-        </li>
-      {{ end }}
-    </ul>
+<div class="container-fluid container-layout"><h3>Users:</h3></div>
+<div class="container-fluid container-layout">
+  <div class="row">
+    {{ range $i, $user := .users }}
+      <a href="/users/edit/{{ $user.ID.Hex }}" class="col-xs bubble-link">{{ $user.Name }}</a>
+    {{ end }}
   </div>
 </div>
 {{ end }}

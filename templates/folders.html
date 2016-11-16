@@ -1,19 +1,14 @@
 {{ define "head" }}
-  <title>SCMS: Folders</title>
+  <title>RGCMS: Folders</title>
 {{ end }}
 
 {{ define "body" }}
-<div class="card">
-  <div class="card-block">
-    <div class="card-title"><h1>Folders:</h1></div>
-    <div class="card-subtitle"><a href="/folder/edit">New Folder</a></div>
-    <ul class="list-group">
-      {{ range $index, $folder := .folders }}
-        <li class="list-group-item">
-          <a href="/folder/view/{{ $folder.ID.Hex }}">{{ $folder.Name }}</a>
-        </li>
-      {{ end }}
-    </ul>
+<div class="container-fluid container-layout"><h3>Folders</h3></div>
+<div class="container-fluid container-layout">
+  <div class="row">
+    {{ range $i, $folder := .folders }}
+      <a href="/folder/view/{{ $folder.ID.Hex }}" class="col-xs bubble-link">{{ $folder.Name }}</a>
+    {{ end }}
   </div>
 </div>
 {{ end }}
