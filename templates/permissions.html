@@ -1,9 +1,43 @@
 {{define "head"}}
-  <title>SCMS: Permissions</title>
+  <title>RGCMS: Permissions</title>
 {{end}}
 
 {{define "body"}}
-  <h2>Levels</h2>
+  <div class="container-fluid container-layout"><h3>Permissions</h3></div>
+  <div class="container-fluid container-layout">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Remove</th>
+          <th>User</th>
+          <th>List</th>
+          <th>Read</th>
+          <th>Write</th>
+          <th>Create</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ range $i, $perm := .folder.Permissions }}
+        <tr data-userId="{{ $perm.UserID.Hex }}">
+          <th scope="row"><a href="#">X</a></th>
+          <td>{{ $perm.UserName }}</td>
+          <td><input type="checkbox" data-permission="list" {{ if $perm.list }}checked{{ end }}></td>
+          <td><input type="checkbox" data-permission="read" {{ if $perm.read }}checked{{ end }}></td>
+          <td><input type="checkbox" data-permission="write" {{ if $perm.write }}checked{{ end }}></td>
+          <td><input type="checkbox" data-permission="create" {{ if $perm.create }}checked{{ end }}></td>
+          <td><input type="checkbox" data-permission="delete" {{ if $perm.delete }}checked{{ end }}></td>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+    <select name="user" id="sclUsers" class="chosen-select">
+      <option></option>
+      {{ range $i, $user := .users }}
+        <option value="{{ $user.ID.Hex }}">{{ $user.Name }}</option>
+      {{ end }}
+    </select>
+  </div>
 {{end}}
 
 {{define "scripts"}}{{end}}

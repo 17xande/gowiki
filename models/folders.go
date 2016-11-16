@@ -12,12 +12,13 @@ const col = "folders"
 
 // Folder represents folders used to store documents
 type Folder struct {
-	ID        bson.ObjectId   `json:"id" bson:"_id"`
-	Name      string          `json:"name"`
-	Level     int             `json:"level"`
-	UserIDs   []bson.ObjectId `json:"userIDs" bson:"userIDs"`
-	Users     []User          `json:"-" bson:"-"` // doesn't get stored in the database
-	Documents []Document      `json:"-" bson:"documents,omitempty"`
+	ID          bson.ObjectId   `json:"id" bson:"_id"`
+	Name        string          `json:"name"`
+	Level       int             `json:"level"`
+	UserIDs     []bson.ObjectId `json:"userIDs" bson:"userIDs"`
+	Users       []User          `json:"-" bson:"-"` // doesn't get stored in the database
+	Documents   []Document      `json:"-" bson:"documents,omitempty"`
+	Permissions []Permission    `json:"-" bson:"permissions,omitempty"`
 	// We might have folders within folders in the future
 	// FolderIDs   []bson.ObjectId `json:"folderIDs" bson:"folderIDs"`
 	// Folders     []Folder        `json:"-" bson:"-"` // doesn't get stored in the database
@@ -185,6 +186,35 @@ func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/folders/", http.StatusFound)
+}
+
+// FolderPermissionEditHandler handles permission editing for folders
+func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
+	// var err error
+	// var users *[]User
+	// f := &Folder{}
+	// user := getUserFromSession()
+
+	// _, id := path.Split(r.URL.Path)
+
+	// if len(id) == 0 {
+	// 	UserSession.AddFlash("Couldn't edit permissions for that folder.", "warning")
+	// 	UserSession.Save(r, w)
+	// 	ErrorLogger.Print("Tried to load the Folder Permissions page without a FolderID")
+	// 	http.Redirect(w, r, "/", http.StatusFound)
+	// 	return
+	// }
+
+	// f, err = findFolder(id)
+	// if err != nil {
+	// 	ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
+	// 	UserSession.AddFlash("Error. Folder could not be retrieved.", "error")
+	// 	UserSession.Save(r, w)
+	// 	err = nil
+	// }
+
+	// users, err = findAllUsers()
+
 }
 
 func findAllFolders() (*[]Folder, error) {

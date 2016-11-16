@@ -36,6 +36,7 @@ func main() {
 	http.HandleFunc("/folder/view/", models.SessionHandler(models.FolderHandler))
 	http.HandleFunc("/folder/edit/", models.SessionHandler(models.FolderEditHandler))
 	http.HandleFunc("/folder/save/", models.SessionHandler(models.FolderSaveHandler))
+	http.HandleFunc("/permissions/", models.SessionHandler(models.PermissionHandler))
 
 	p := os.Getenv("PORT")
 	if p == "" {

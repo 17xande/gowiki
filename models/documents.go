@@ -9,10 +9,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"golang.org/x/crypto/scrypt"
-
-	"time"
 
 	"gopkg.in/mgo.v2/bson"
 )
