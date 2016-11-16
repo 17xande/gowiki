@@ -206,7 +206,7 @@ func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 
 	query := r.URL.Query()
-	if query["folder-id"][0] != "" {
+	if len(query["folder-id"]) > 0 && query["folder-id"][0] != "" {
 		d.FolderID = bson.ObjectIdHex(query["folder-id"][0])
 	}
 
