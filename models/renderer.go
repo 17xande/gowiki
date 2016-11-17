@@ -31,7 +31,7 @@ func init() {
 	templates["folders.html"] = template.Must(template.ParseFiles(temp+"folders.html", temp+"base.html"))
 	templates["folderEdit.html"] = template.Must(template.ParseFiles(temp+"folderEdit.html", temp+"base.html"))
 	templates["login.html"] = template.Must(template.ParseFiles(temp+"login.html", temp+"base.html"))
-	templates["permissions.html"] = template.Must(template.ParseFiles(temp+"permissions.html", temp+"base.html"))
+	templates["folderPermissions.html"] = template.Must(template.ParseFiles(temp+"folderPermissions.html", temp+"base.html"))
 }
 
 // RenderTemplate renders the given template and handles flash messages

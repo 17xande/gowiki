@@ -120,13 +120,10 @@ func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpData := map[string]interface{}{
-		"user":         user,
-		"users":        users,
-		"folder":       f,
-		"exists":       exists,
-		"flashError":   UserSession.Flashes("error"),
-		"flashWarning": UserSession.Flashes("warning"),
-		"flashAlert":   UserSession.Flashes("alert"),
+		"user":   user,
+		"users":  users,
+		"folder": f,
+		"exists": exists,
 	}
 
 	RenderTemplate(w, r, "folderEdit", tmpData)
@@ -190,31 +187,57 @@ func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
 
 // FolderPermissionEditHandler handles permission editing for folders
 func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
-	// var err error
-	// var users *[]User
-	// f := &Folder{}
-	// user := getUserFromSession()
+	var err error
+	f := &Folder{}
+	user := getUserFromSession()
 
-	// _, id := path.Split(r.URL.Path)
+	_, id := path.Split(r.URL.Path)
 
-	// if len(id) == 0 {
-	// 	UserSession.AddFlash("Couldn't edit permissions for that folder.", "warning")
-	// 	UserSession.Save(r, w)
-	// 	ErrorLogger.Print("Tried to load the Folder Permissions page without a FolderID")
-	// 	http.Redirect(w, r, "/", http.StatusFound)
-	// 	return
-	// }
+	if len(id) == 0 {
+		UserSession.AddFlash("Couldn't edit permissions for that folder.", "warning")
+		UserSession.Save(r, w)
+		ErrorLogger.Print("Tried to load the Folder Permissions page without a FolderID")
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 
-	// f, err = findFolder(id)
-	// if err != nil {
-	// 	ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
-	// 	UserSession.AddFlash("Error. Folder could not be retrieved.", "error")
-	// 	UserSession.Save(r, w)
-	// 	err = nil
-	// }
+	f, err = findFolder(id)
+	if err != nil {
+		ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
+		UserSession.AddFlash(" Folder could not be retrieved.", "error")
+		UserSession.Save(r, w)
+		err = nil
+	}
 
-	// users, err = findAllUsers()
+	// Get all the userIDs out of any permissions for this folder.
+	iPerm := len(f.Permissions)
+	notUserIds := make([]bson.ObjectId, iPerm)
 
+	for i, perm := range f.Permissions {
+		notUserIds[i] = perm.UserID
+	}
+
+	notUsers, err := findNotUsers(&notUserIds)
+	if err != nil {
+		ErrorLogger.Print("Error trying to find rest of users.", err)
+		UserSession.AddFlash("Couldn't retrieve rest of users from database", "error")
+		UserSession.Save(r, w)
+		err = nil
+	}
+
+	tmpData := map[string]interface{}{
+		"user":     user,
+		"notUsers": notUsers,
+		"folder":   f,
+	}
+
+	RenderTemplate(w, r, "folderPermissions", tmpData)
+	if err != nil {
+		ErrorLogger.Print("Error trying to display folder {id: "+id+"}", err)
+		UserSession.AddFlash("Error. Folder could not be displayed.", "error")
+		UserSession.Save(r, w)
+		err = nil
+	}
 }
 
 func findAllFolders() (*[]Folder, error) {
@@ -267,14 +290,6 @@ func findFoldersAndDocuments() (*[]Folder, error) {
 				bson.M{"userIDs": user.ID},
 			}},
 		}}
-	// {"$match": bson.M{
-	// 	"$or": []bson.M{{
-	// 		"documents.level": bson.M{"$lte": user.Level},
-	// 		"folders.level": bson.M{"$lte": user.Level},
-	// 		"documents.userIDs": user.ID,
-	// 		"folders.userIDs":   user.ID,
-	// 	}}},
-	// }}
 
 	pipe := collection.Pipe(query)
 	err := pipe.All(&folders)

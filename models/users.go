@@ -289,6 +289,22 @@ func findUsers(ids *[]bson.ObjectId) (users *[]User, err error) {
 	return nil, err
 }
 
+func findNotUsers(ids *[]bson.ObjectId) (*[]User, error) {
+	session := dbConnect()
+	defer session.Close()
+	collection := session.DB(db).C(userCol)
+	users := &[]User{}
+
+	query := bson.M{"_id": bson.M{"$nin": ids}}
+	err := collection.Find(query).All(users)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func (user *User) authenticate() (found bool, err error) {
 	session := dbConnect()
 	defer session.Close()
