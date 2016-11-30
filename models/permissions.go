@@ -13,6 +13,7 @@ type Permission struct {
 	Read   bool          `json:"read"`
 	Update bool          `json:"update"`
 	Create bool          `json:"create"`
+	User   []User        `json:"-" bson:"-"` // doesn't get stored in the database
 }
 
 // PermissionHandler handles GET requests to the Permissions page

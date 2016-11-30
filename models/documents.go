@@ -82,20 +82,6 @@ func findAllDocs() (*[]Document, error) {
 	return &documents, nil
 }
 
-func findDocsForFolder(f *Folder) (*[]Document, error) {
-	session := dbConnect()
-	defer session.Close()
-	collection := session.DB(db).C(documentCol)
-	var docs []Document
-
-	err := collection.Find(bson.M{"folderID": f.ID}).All(&docs)
-	if err != nil {
-		return nil, err
-	}
-
-	return &docs, nil
-}
-
 // IndexHandler handles the index page request
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	// check for invalid request

@@ -27,7 +27,6 @@ type Folder struct {
 // FolderHandler handles the folder page, where all the documents in a folder are displayed
 func FolderHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var docs *[]Document
 	f := &Folder{}
 	user := getUserFromSession()
 
@@ -48,7 +47,7 @@ func FolderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docs, err = findDocsForFolder(f)
+	err = f.findDocsForFolder()
 	if err != nil {
 		ErrorLogger.Print("Error trying to find document for folder: {id: "+id+"}\n", err)
 		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
@@ -61,7 +60,6 @@ func FolderHandler(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"user":   user,
 		"folder": f,
-		"docs":   docs,
 	}
 
 	RenderTemplate(w, r, "folder", data)
@@ -201,7 +199,7 @@ func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f, err = findFolder(id)
+	f, err = findFolderWithPermissions(bson.ObjectIdHex(id))
 	if err != nil {
 		ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
 		UserSession.AddFlash(" Folder could not be retrieved.", "error")
@@ -224,6 +222,8 @@ func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
 		UserSession.Save(r, w)
 		err = nil
 	}
+
+	// permittedUsers, err := findUsers()
 
 	tmpData := map[string]interface{}{
 		"user":     user,
@@ -268,6 +268,38 @@ func findFolder(idHex string) (*Folder, error) {
 	return f, nil
 }
 
+func findFolderWithPermissions(id bson.ObjectId) (*Folder, error) {
+	var folders []Folder
+	session := dbConnect()
+	defer session.Close()
+	collection := session.DB(db).C(col)
+
+	query := []bson.M{
+		{
+			"$unwind": "$permissions",
+		},
+		{
+			"$lookup": bson.M{
+				"from":         "users",
+				"localField":   "permissions.userId",
+				"foreignField": "_id",
+				"as":           "user",
+			},
+		},
+		{
+			"$match": bson.M{"name": "test"},
+		},
+	}
+
+	err := collection.Pipe(query).All(&folders)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &folders[0], err
+}
+
 func findFoldersAndDocuments() (*[]Folder, error) {
 	session := dbConnect()
 	defer session.Close()
@@ -307,6 +339,18 @@ func (f *Folder) save() (err error) {
 	collection := session.DB(db).C(col)
 
 	_, err = collection.UpsertId(f.ID, f)
+
+	return err
+}
+
+func (f *Folder) findDocsForFolder() error {
+	session := dbConnect()
+	defer session.Close()
+	collection := session.DB(db).C(documentCol)
+	var docs []Document
+
+	err := collection.Find(bson.M{"folderID": f.ID}).All(&docs)
+	f.Documents = docs
 
 	return err
 }
