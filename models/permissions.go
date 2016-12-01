@@ -1,25 +1,16 @@
 package models
 
-import (
-	"net/http"
-
-	"gopkg.in/mgo.v2/bson"
-)
+import "gopkg.in/mgo.v2/bson"
 
 // Permission defines permissions or folders and documents.
 type Permission struct {
-	UserID bson.ObjectId `json:"userId" bson:"userId"`
-	List   bool          `json:"list"`
-	Read   bool          `json:"read"`
-	Update bool          `json:"update"`
-	Create bool          `json:"create"`
-	User   []User        `json:"-" bson:"-"` // doesn't get stored in the database
-}
-
-// PermissionHandler handles GET requests to the Permissions page
-func PermissionHandler(w http.ResponseWriter, r *http.Request) {
-	data := map[string]interface{}{
-		"hello": "there",
-	}
-	RenderTemplate(w, r, "permissions", data)
+	ID       bson.ObjectId `json:"_id" bson:"_id"`
+	FolderID bson.ObjectId `json:"folderId" bson:"folderId"`
+	UserID   bson.ObjectId `json:"userId" bson:"userId"`
+	List     bool          `json:"list"`
+	Read     bool          `json:"read"`
+	Update   bool          `json:"update"`
+	Create   bool          `json:"create"`
+	Delete   bool          `json:"delete"`
+	User     []User        `json:"-" bson:",omitempty"` // doesn't get stored in the database
 }
