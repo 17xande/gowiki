@@ -38,5 +38,6 @@ db.users.insert({
   email: "admin@email.com",
   password: "",
   level: 7,
-  admin: true
+  admin: true,
+  tech: false
 });

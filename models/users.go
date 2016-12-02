@@ -78,27 +78,6 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 	RenderTemplate(w, r, "userEdit", tmpData)
 }
 
-// FirstUserHandler inserts a default user into the database
-func FirstUserHandler(w http.ResponseWriter, r *http.Request) {
-	// if Conf.Bools["setup"] {
-	user := &User{
-		ID:       bson.NewObjectId(),
-		Name:     "Admin",
-		Email:    "admin@email.com",
-		Password: []byte("admin"),
-		Level:    7,
-		Admin:    true,
-		Tech:     false,
-	}
-
-	user.hashPassword()
-	// user.insert()
-
-	// Conf.Bools["setup"] = false
-	// }
-	http.Redirect(w, r, "/login", http.StatusFound)
-}
-
 // UserSaveHandler handles the save user page
 func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 	var exists bool
@@ -367,4 +346,20 @@ func (user *User) exists() (exists bool, err error) {
 	exists = count > 0
 
 	return exists, err
+}
+
+// InitAdmin inserts or updates the default Admin user.
+func InitAdmin() {
+	u := User{
+		Name:     "Admin",
+		Email:    "admin@email.com",
+		Password: []byte("admin"),
+		Level:    7,
+		Admin:    true,
+		Tech:     false,
+	}
+
+	u.hashPassword()
+	u.save()
+
 }
