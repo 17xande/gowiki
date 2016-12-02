@@ -139,7 +139,7 @@ func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		err = u.save()
+		err = u.Save()
 		if err != nil {
 			ErrorLogger.Print("Could not save user. ", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -182,7 +182,7 @@ func UserLoginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		found, err = user.authenticate()
+		found, err = user.Authenticate()
 		if err != nil {
 			ErrorLogger.Print("Problem while looking for user in database. {email: "+user.Email+"} ", err)
 			data["flashError"] = "Error trying to auntenticate your account. Please try again."
@@ -284,7 +284,8 @@ func findNotUsers(ids *[]bson.ObjectId) (*[]User, error) {
 	return users, nil
 }
 
-func (user *User) authenticate() (found bool, err error) {
+// Authenticate user based on email and password
+func (user *User) Authenticate() (found bool, err error) {
 	session := dbConnect()
 	defer session.Close()
 	collection := session.DB(db).C(userCol)
@@ -295,10 +296,15 @@ func (user *User) authenticate() (found bool, err error) {
 	}).One(&user)
 
 	found = user.ID.Hex() != ""
+	if err != nil && err.Error() == "not found" {
+		err = nil
+		found = false
+	}
 	return found, err
 }
 
-func (user *User) save() error {
+// Save or update the database record of the User
+func (user *User) Save() error {
 	session := dbConnect()
 	defer session.Close()
 	collection := session.DB(db).C(userCol)
@@ -349,8 +355,9 @@ func (user *User) exists() (exists bool, err error) {
 }
 
 // InitAdmin inserts or updates the default Admin user.
-func InitAdmin() {
+func InitAdmin() (*User, error) {
 	u := User{
+		ID:       bson.NewObjectId(),
 		Name:     "Admin",
 		Email:    "admin@email.com",
 		Password: []byte("admin"),
@@ -359,7 +366,10 @@ func InitAdmin() {
 		Tech:     false,
 	}
 
-	u.hashPassword()
-	u.save()
+	err := u.hashPassword()
+	if err != nil {
+		return nil, err
+	}
 
+	return &u, err
 }
