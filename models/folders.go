@@ -225,7 +225,7 @@ func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
 		notUserIds[i] = perm.UserID
 	}
 
-	notUsers, err := findNotUsers(&notUserIds)
+	users, err := findNotUsers(&notUserIds)
 	if err != nil {
 		ErrorLogger.Print("Error trying to find rest of users.", err)
 		UserSession.AddFlash("Couldn't retrieve rest of users from database", "error")
@@ -236,9 +236,9 @@ func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
 	// permittedUsers, err := findUsers()
 
 	tmpData := map[string]interface{}{
-		"user":     user,
-		"notUsers": notUsers,
-		"folder":   f,
+		"user":   user,
+		"users":  users,
+		"folder": f,
 	}
 
 	RenderTemplate(w, r, "folderPermissions", tmpData)

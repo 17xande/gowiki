@@ -29,3 +29,13 @@
 .ql-editor {
   user-select: none;
 }
+
+.table{
+  border-bottom: 1px solid #eceeef;
+  border-left: 1px solid #eceeef;
+}
+
+.table th, .table td {
+  text-align: center;
+  border-right: 1px solid #eceeef;
+}

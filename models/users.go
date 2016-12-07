@@ -263,7 +263,7 @@ func findUsers(ids *[]bson.ObjectId) (users *[]User, err error) {
 	collection := session.DB(db).C(userCol)
 
 	query := bson.M{"_id": bson.M{"$in": ids}}
-	err = collection.Find(query).All(users)
+	err = collection.Find(query).Sort("name").All(users)
 
 	return nil, err
 }
@@ -275,7 +275,7 @@ func findNotUsers(ids *[]bson.ObjectId) (*[]User, error) {
 	users := &[]User{}
 
 	query := bson.M{"_id": bson.M{"$nin": ids}}
-	err := collection.Find(query).All(users)
+	err := collection.Find(query).Sort("name").All(users)
 
 	if err != nil {
 		return nil, err

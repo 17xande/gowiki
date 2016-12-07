@@ -3,7 +3,7 @@
 {{end}}
 
 {{define "body"}}
-  <div class="container-fluid container-layout"><h3>Permissions</h3></div>
+  <div class="container-fluid container-layout"><h3>Permissions for folder: {{ .folder.Name }}</h3></div>
   <div class="container-fluid container-layout">
     <table class="table">
       <thead>
@@ -21,22 +21,27 @@
         {{ range $i, $perm := .folder.Permissions }}
         <tr data-userId="{{ $perm.UserID.Hex }}">
           <th scope="row"><a href="#">X</a></th>
-          <td>{{ $perm.UserName }}</td>
-          <td><input type="checkbox" data-permission="list" {{ if $perm.list }}checked{{ end }}></td>
-          <td><input type="checkbox" data-permission="read" {{ if $perm.read }}checked{{ end }}></td>
-          <td><input type="checkbox" data-permission="write" {{ if $perm.write }}checked{{ end }}></td>
-          <td><input type="checkbox" data-permission="create" {{ if $perm.create }}checked{{ end }}></td>
-          <td><input type="checkbox" data-permission="delete" {{ if $perm.delete }}checked{{ end }}></td>
+          {{ with $user := index $perm.User 0 }}
+          <td title="Level: {{ $user.Level }}{{ if $user.Admin }}&#13;Admin{{ end }}{{ if $user.Tech }}&#13;Tech{{ end }}">{{ $user.Name }}</td>
+          {{ end }}
+          <td><input type="checkbox" data-permission="list" {{ if $perm.List }}checked{{ end }}></td>
+          <td><input type="checkbox" data-permission="read" {{ if $perm.Read }}checked{{ end }}></td>
+          <td><input type="checkbox" data-permission="write" {{ if $perm.Update }}checked{{ end }}></td>
+          <td><input type="checkbox" data-permission="create" {{ if $perm.Create }}checked{{ end }}></td>
+          <td><input type="checkbox" data-permission="delete" {{ if $perm.Delete }}checked{{ end }}></td>
         </tr>
         {{ end }}
       </tbody>
     </table>
-    <select name="user" id="sclUsers" class="chosen-select">
-      <option></option>
-      {{ range $i, $user := .users }}
-        <option value="{{ $user.ID.Hex }}">{{ $user.Name }}</option>
-      {{ end }}
-    </select>
+    <form id="frmFolderPermissions" action="/folder/permissions/save/{{ .folder.ID.Hex }}" method="POST">
+      <span>Add permissions for user: </span>
+      <select name="user" id="sclUsers" class="chosen-select">
+        <option></option>
+        {{ range $i, $user := .users }}
+          <option value="{{ $user.ID.Hex }}">{{ $user.Name }}</option>
+        {{ end }}
+      </select>
+    </form>
   </div>
 {{end}}
 

@@ -12,5 +12,5 @@ type Permission struct {
 	Update   bool          `json:"update"`
 	Create   bool          `json:"create"`
 	Delete   bool          `json:"delete"`
-	User     []User        `json:"-" bson:",omitempty"` // doesn't get stored in the database
+	User     []User        `json:"-" bson:"user,omitempty"` // doesn't get stored in the database
 }
