@@ -1,9 +1,12 @@
 package models
 
 import (
+	"html/template"
 	"net/http"
 	"path"
 	"strconv"
+
+	"encoding/json"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -234,11 +237,28 @@ func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// permittedUsers, err := findUsers()
+	jsPermissions, err := json.Marshal(f.Permissions)
+	if err != nil {
+		ErrorLogger.Print("Error trying to marshal permissions", err)
+		UserSession.AddFlash("We're experiencing some technical difficulties on that page.", "error")
+		UserSession.Save(r, w)
+		err = nil
+	}
+
+	jsUsers, err := json.Marshal(users)
+	if err != nil {
+		ErrorLogger.Print("Error trying to marshal users.", err)
+		UserSession.AddFlash("We're experiencing some technical difficulties on that page.", "error")
+		UserSession.Save(r, w)
+		err = nil
+	}
 
 	tmpData := map[string]interface{}{
-		"user":   user,
-		"users":  users,
-		"folder": f,
+		"user":          user,
+		"users":         users,
+		"folder":        f,
+		"jsPermissions": template.JS(jsPermissions),
+		"jsUsers":       template.JS(jsUsers),
 	}
 
 	RenderTemplate(w, r, "folderPermissions", tmpData)

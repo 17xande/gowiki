@@ -18,7 +18,7 @@ type User struct {
 	Level    int           `json:"level"`
 	Admin    bool          `json:"admin"`
 	Tech     bool          `json:"tech"`
-	Password []byte        `json:"password"`
+	Password []byte        `json:"-"`
 }
 
 const userCol = "users"

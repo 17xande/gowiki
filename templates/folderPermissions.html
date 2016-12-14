@@ -1,11 +1,12 @@
 {{define "head"}}
   <title>RGCMS: Permissions</title>
+  <link rel="stylesheet" href="/public/dependencies/css/chosen.min.css">
 {{end}}
 
 {{define "body"}}
   <div class="container-fluid container-layout"><h3>Permissions for folder: {{ .folder.Name }}</h3></div>
   <div class="container-fluid container-layout">
-    <table class="table">
+    <table id="tblPermissions" class="table">
       <thead>
         <tr>
           <th>Remove</th>
@@ -33,16 +34,38 @@
         {{ end }}
       </tbody>
     </table>
+
+    <template id="tmpUserRow">
+      <tr data-userid="">
+        <th scope="row"><a href="#">X</a></th>
+        <td title="Level:"></td>
+        <td><input type="checkbox" data-permission="list" checked></td>
+        <td><input type="checkbox" data-permission="read" checked></td>
+        <td><input type="checkbox" data-permission="write"></td>
+        <td><input type="checkbox" data-permission="create"></td>
+        <td><input type="checkbox" data-permission="delete"></td>
+      </tr>
+    </template>
+
+    <button id="btnAdd">Add permissions for user: </button id="btnAdd">
+    <select name="user" id="slcUsers" class="chosen-select">
+      <option></option>
+      {{ range $i, $user := .users }}
+        <option value="{{ $user.ID.Hex }}">{{ $user.Name }}</option>
+      {{ end }}
+    </select>
     <form id="frmFolderPermissions" action="/folder/permissions/save/{{ .folder.ID.Hex }}" method="POST">
-      <span>Add permissions for user: </span>
-      <select name="user" id="sclUsers" class="chosen-select">
-        <option></option>
-        {{ range $i, $user := .users }}
-          <option value="{{ $user.ID.Hex }}">{{ $user.Name }}</option>
-        {{ end }}
-      </select>
     </form>
   </div>
 {{end}}
 
-{{define "scripts"}}{{end}}
+{{define "scripts"}}
+  <script type="application/json" id="scrUserPermissions">
+    {
+      "permissions": {{ .jsPermissions }},
+      "users": {{ .jsUsers }}
+    }
+  </script>
+  <script src="/public/dependencies/js/chosen.jquery.min.js"></script>
+  <script src="/public/js/folderPermissions.js"></script>
+{{end}}
