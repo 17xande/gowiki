@@ -55,7 +55,7 @@
       {{ end }}
     </select>
     <form id="frmFolderPermissions" action="/folder/permissions/save/{{ .folder.ID.Hex }}" method="POST">
-      <input id="hdnFolderPermissions" type="hidden">
+      <input id="hdnFolderPermissions" type="hidden" name="folderPermissions">
       <input id="btnSave" type="submit" value="Save">
     </form>
   </div>

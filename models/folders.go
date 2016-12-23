@@ -270,6 +270,37 @@ func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// FolderPermissionSaveHandler handles save POST requests with folder permission data.
+func FolderPermissionSaveHandler(w http.ResponseWriter, r *http.Request) {
+	var p []Permission
+	var err error
+	_, id := path.Split(r.URL.Path)
+
+	if r.Method == "POST" {
+		r.ParseForm()
+		strPerms := r.Form["folderPermissions"][0]
+		err = json.Unmarshal([]byte(strPerms), &p)
+		if err != nil {
+			ErrorLogger.Print("Error unmarshalling folder permissions. {id: "+id+"}\n", err.Error())
+			UserSession.AddFlash("Error loading folder permissions.", "error")
+			UserSession.Save(r, w)
+			http.Redirect(w, r, "/folder/edit/"+id, http.StatusFound)
+			return
+		}
+
+		err = permissionSave(p)
+		if err != nil {
+			ErrorLogger.Print("Error saving folder permissions. {id: "+id+"}\n", err.Error())
+			UserSession.AddFlash("Error saving folder permission.", "error")
+			http.Redirect(w, r, "/folder/edit/"+id, http.StatusFound)
+			return
+		}
+		InfoLogger.Print("Folder permissions saved {id: " + id + "}")
+	}
+
+	http.Redirect(w, r, "/folder/permissions/"+id, http.StatusFound)
+}
+
 func findAllFolders() (*[]Folder, error) {
 	session := dbConnect()
 	defer session.Close()
@@ -382,6 +413,24 @@ func (f *Folder) getPermissions() error {
 
 	pipe := collection.Pipe(query)
 	err := pipe.All(&f.Permissions)
+
+	return err
+}
+
+func permissionSave(ps []Permission) error {
+	session := dbConnect()
+	defer session.Close()
+	collection := session.DB(db).C("folderPermissions")
+	var update bson.M
+
+	b := collection.Bulk()
+	b.Unordered()
+	for _, p := range ps {
+		update = bson.M{"folderId": p.ID, "userId": p.UserID}
+		b.Upsert(update, p)
+	}
+
+	_, err := b.Run()
 
 	return err
 }

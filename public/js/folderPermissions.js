@@ -2,6 +2,7 @@ chosenUsers = $('#slcUsers').chosen({
   no_results_text: "No users found"
 });
 
+let folderId = window.location.pathname.split('/').splice(-1)[0];
 let btnAdd = document.getElementById('btnAdd');
 let slcUsers = document.getElementById('slcUsers');
 let scrUserPermissions = document.getElementById('scrUserPermissions');
@@ -49,6 +50,7 @@ function save(evt) {
 
   rows.forEach(element => {
     permission = {
+      folderId: folderId,
       userId: element.getAttribute('data-userid'),
       list: element.querySelector('input[data-permission=list]').checked,
       read: element.querySelector('input[data-permission=read]').checked,
