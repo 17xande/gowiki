@@ -9,7 +9,7 @@ import (
 
 // Config implements configuration functionality
 type Config struct {
-	Databases map[string]DB     `toml:"databases"`
+	Databases map[string]DBConf `toml:"databases"`
 	Secrets   map[string]string `toml:"secrets"`
 }
 

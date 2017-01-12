@@ -1,8 +1,8 @@
-{{ define "head" }}
+{{ define "head-user/edit" }}
   <title>SCMS: Edit User</title>
 {{ end }}
 
-{{ define "body" }}
+{{ define "body-user/edit" }}
   <h1>{{ if .exists }}Edit{{ else }}New{{ end }} User</h1>
   <form id="frmUser" action="/users/save/{{ .editUser.ID.Hex }}" method="POST">
       <input id="hdnId" name="userId" type="hidden" value="{{ .editUser.ID.Hex }}">
@@ -31,5 +31,3 @@
       <input type="submit" value="Save">
   </form>
 {{ end }}
-
-{{ define "scripts" }}{{ end }}

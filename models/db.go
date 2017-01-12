@@ -17,22 +17,15 @@ var (
 	InfoLogger *log.Logger
 )
 
-func init() {
-	Conf = &Config{}
-	Conf.Load()
-	db = Conf.Databases["app"].Name
-
-	ErrorLogger = log.New(&MongoWriter{"error"}, "", log.Lshortfile)
-	InfoLogger = log.New(&MongoWriter{"info"}, "", log.Lshortfile)
+// DB is a DB implementation that talks to an external DB server.
+// This will connect to a MongoDB server but a generic "DB" is used
+// to make it simple to switch to a different database if necessary.
+type DB struct {
+	sess *mgo.Session
 }
 
-// MongoDB is an implementation that talks to an external mongodb
-// type MongoDB struct {
-// 	sess *mgo.Session
-// }
-
-// DB defines the database config options
-type DB struct {
+// DBConf defines the database config options
+type DBConf struct {
 	Host     string
 	Name     string
 	Username string
@@ -44,13 +37,32 @@ type MongoWriter struct {
 	collection string
 }
 
-// func NewMongoDB(dbConf DB) (*MongoDB, error) {
-// 	s, err := mgo.Dial(dbConf.Host)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &MongoDB{sess: s}, nil
-// }
+func init() {
+	Conf = &Config{}
+	Conf.Load()
+	db = Conf.Databases["app"].Name
+
+	ErrorLogger = log.New(&MongoWriter{"error"}, "", log.Lshortfile)
+	InfoLogger = log.New(&MongoWriter{"info"}, "", log.Lshortfile)
+}
+
+// NewDB connects to a database server and returns a database implementation
+// for that connection. Call Close() on the returned value when done.
+func NewDB(dbc DBConf) (*DB, error) {
+	// url := "mongodb://" + dbc.Username + ":" + dbc.Password + "@" + dbc.Host + "/" + dbc.Name
+	url := "mongodb://" + dbc.Host + "/" + dbc.Name
+	s, err := mgo.Dial(url)
+	if err != nil {
+		return nil, err
+	}
+	return &DB{sess: s}, nil
+}
+
+// Close releases the underlying connections. Always call this when done
+// with the database operations.
+func (d *DB) Close() {
+	d.sess.Close()
+}
 
 func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 	var data bson.M

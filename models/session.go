@@ -1,12 +1,18 @@
 package models
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gorilla/sessions"
+	"github.com/urfave/negroni"
 )
 
 var store = sessions.NewCookieStore([]byte("scms-foh-the-win"))
+
+type ctxKey string
+
+const sessKey ctxKey = "session"
 
 // UserSession stores the current user session
 var UserSession *sessions.Session
@@ -18,6 +24,33 @@ func SessionInit() {
 		MaxAge:   86400, // One day
 		HttpOnly: true,
 	}
+}
+
+// SessionMiddleware handles session checking in the Negroni flow.
+func SessionMiddleware(db *DB) negroni.HandlerFunc {
+	return negroni.HandlerFunc(func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		ctx := r.Context()
+		// store.Get() creates a new entry if one doesn't already exists. So it will almost never throw and error.
+		s, err := store.Get(r, "user")
+		if err != nil {
+			ErrorLogger.Print("Error trying to process session. ", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			next(w, r)
+			return
+		}
+
+		if s.Values["id"] == nil {
+			// if we're already in the login page then don't redirect to the login page again.
+			if r.URL.Path != "/login" {
+				http.Redirect(w, r, "/login", http.StatusFound)
+			}
+			next(w, r)
+			return
+		}
+
+		ctx = context.WithValue(ctx, sessKey, s)
+		next(w, r.WithContext(ctx))
+	})
 }
 
 // SessionCreate handles login sessions in the site
@@ -65,15 +98,6 @@ func SessionHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFun
 		fn(w, r)
 	}
 }
-
-// LoginTest is a non-handler verson of LoginTestHandler
-// func LoginTest(w http.ResponseWriter, r *http.Request) {
-// 	getSession(w, r)
-
-// 	if UserSession.Values["id"] == nil {
-// 		http.Redirect(w, r, "/login", http.StatusFound)
-// 	}
-// }
 
 // getSession Retrieves session if there is one
 func getSession(w http.ResponseWriter, r *http.Request) {

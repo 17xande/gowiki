@@ -1,9 +1,9 @@
-{{define "head"}}
+{{define "head-folder/permissions"}}
   <title>RGCMS: Permissions</title>
   <link rel="stylesheet" href="/public/dependencies/css/chosen.min.css">
 {{end}}
 
-{{define "body"}}
+{{define "body-folder/permissions"}}
   <div class="container-fluid container-layout"><h3>Permissions for folder: {{ .folder.Name }}</h3></div>
   <div class="container-fluid container-layout">
     <table id="tblPermissions" class="table">
@@ -61,7 +61,7 @@
   </div>
 {{end}}
 
-{{define "scripts"}}
+{{define "scripts-folder/permissions"}}
   <script type="application/json" id="scrUserPermissions">
     {
       "permissions": {{ .jsPermissions }},

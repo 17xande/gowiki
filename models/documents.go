@@ -8,8 +8,11 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"path"
 	"strconv"
 	"time"
+
+	"github.com/unrolled/render"
 
 	"golang.org/x/crypto/scrypt"
 
@@ -83,31 +86,34 @@ func findAllDocs() (*[]Document, error) {
 }
 
 // IndexHandler handles the index page request
-func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	// check for invalid request
-	if r.URL.Path != "/" {
-		http.Redirect(w, r, "/notfound/", http.StatusNotFound)
-		return
-	}
+func IndexHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// check for invalid request
+		if r.URL.Path != "/" {
+			http.Redirect(w, r, "/notfound/", http.StatusNotFound)
+			return
+		}
 
-	user := getUserFromSession()
-	folders, err := findFoldersAndDocuments()
-	if err != nil {
-		ErrorLogger.Print("Error getting users and folders on index page. ", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		user := getUserFromSession()
+		folders, err := findFoldersAndDocuments()
+		if err != nil {
+			ErrorLogger.Print("Error getting users and folders on index page. ", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	data := map[string]interface{}{
-		"folders": folders,
-		"user":    user,
-	}
+		data := map[string]interface{}{
+			"folders": folders,
+			"user":    user,
+		}
 
-	RenderTemplate(w, r, "index", data)
+		RenderTemplate(w, r, "index", data)
+	}
 }
 
 // ViewHandler handles the document view page
-func ViewHandler(w http.ResponseWriter, r *http.Request, id string) {
+func ViewHandler(w http.ResponseWriter, r *http.Request) {
+	_, id := path.Split(r.URL.Path)
 	var body template.HTML
 	d, err := loadPage(id)
 	if err != nil {
@@ -149,7 +155,8 @@ func ViewHandler(w http.ResponseWriter, r *http.Request, id string) {
 }
 
 // EditHandler handles the document edit page
-func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
+func EditHandler(w http.ResponseWriter, r *http.Request) {
+	_, id := path.Split(r.URL.Path)
 	d := &Document{}
 	var err error
 	var body template.HTML
@@ -207,7 +214,8 @@ func EditHandler(w http.ResponseWriter, r *http.Request, id string) {
 }
 
 // SaveHandler handles the document save page
-func SaveHandler(w http.ResponseWriter, r *http.Request, idHex string) {
+func SaveHandler(w http.ResponseWriter, r *http.Request) {
+	_, idHex := path.Split(r.URL.Path)
 	var d *Document
 
 	if r.Method == "GET" {

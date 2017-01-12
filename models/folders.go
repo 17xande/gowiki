@@ -186,8 +186,8 @@ func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/folders/", http.StatusFound)
 }
 
-// FolderPermissionEditHandler handles permission editing for folders
-func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
+// FolderPermissionsEditHandler handles permission editing for folders
+func FolderPermissionsEditHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	f := &Folder{}
 	user := getUserFromSession()
@@ -270,8 +270,8 @@ func FolderPermissionEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// FolderPermissionSaveHandler handles save POST requests with folder permission data.
-func FolderPermissionSaveHandler(w http.ResponseWriter, r *http.Request) {
+// FolderPermissionsSaveHandler handles save POST requests with folder permission data.
+func FolderPermissionsSaveHandler(w http.ResponseWriter, r *http.Request) {
 	var p []Permission
 	var err error
 	_, id := path.Split(r.URL.Path)

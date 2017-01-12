@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"path"
 
+	"github.com/unrolled/render"
+
 	"strconv"
 
 	"golang.org/x/crypto/scrypt"
@@ -159,56 +161,60 @@ func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // UserLoginHandler handles login attempts
-func UserLoginHandler(w http.ResponseWriter, r *http.Request) {
-	data := make(map[string]interface{})
-	var err error
-	var user *User
-	var found bool
+func UserLoginHandler(rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data := make(map[string]interface{})
+		var err error
+		var user *User
+		var found bool
 
-	if r.Method == "POST" {
-		r.ParseForm()
-		password := r.Form["password"][0]
+		if r.Method == "POST" {
+			r.ParseForm()
+			password := r.Form["password"][0]
 
-		user = &User{
-			Email:    r.Form["email"][0],
-			Password: []byte(password),
+			user = &User{
+				Email:    r.Form["email"][0],
+				Password: []byte(password),
+			}
+
+			err = user.hashPassword()
+			if err != nil {
+				ErrorLogger.Print("Could not hash password for user {email: "+user.Email+"} ", err)
+				data["flashError"] = "There was a problem with your password. Please try again."
+				_ = templates["login.html"].ExecuteTemplate(w, "base", data)
+				return
+			}
+
+			found, err = user.Authenticate()
+			if err != nil {
+				ErrorLogger.Print("Problem while looking for user in database. {email: "+user.Email+"} ", err)
+				data["flashError"] = "Error trying to auntenticate your account. Please try again."
+				_ = templates["login.html"].ExecuteTemplate(w, "base", data)
+				return
+			}
+
+			if !found {
+				data["flashWarning"] = "User not found"
+				InfoLogger.Print("Failed user login attempt: {email: " + user.Email + "}")
+			} else {
+				InfoLogger.Print("Successful user login: {email: " + user.Email + "}")
+				SessionCreate(w, r, user)
+			}
 		}
 
-		err = user.hashPassword()
-		if err != nil {
-			ErrorLogger.Print("Could not hash password for user {email: "+user.Email+"} ", err)
-			data["flashError"] = "There was a problem with your password. Please try again."
-			_ = templates["login.html"].ExecuteTemplate(w, "base", data)
+		// handle if a user is already logged in
+		if UserSession != nil && UserSession.Values["id"] != nil {
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
-		found, err = user.Authenticate()
+		err = rend.HTML(w, http.StatusFound, "login", data)
+		// err = templates["login.html"].ExecuteTemplate(w, "base", data)
 		if err != nil {
-			ErrorLogger.Print("Problem while looking for user in database. {email: "+user.Email+"} ", err)
-			data["flashError"] = "Error trying to auntenticate your account. Please try again."
-			_ = templates["login.html"].ExecuteTemplate(w, "base", data)
-			return
+			ErrorLogger.Print("Trouble handling login page render. ", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-
-		if !found {
-			data["flashWarning"] = "User not found"
-			InfoLogger.Print("Failed user login attempt: {email: " + user.Email + "}")
-		} else {
-			InfoLogger.Print("Successful user login: {email: " + user.Email + "}")
-			SessionCreate(w, r, user)
-		}
-	}
-
-	// handle if a user is already logged in
-	if UserSession != nil && UserSession.Values["id"] != nil {
-		http.Redirect(w, r, "/", http.StatusFound)
 		return
-	}
-
-	err = templates["login.html"].ExecuteTemplate(w, "base", data)
-	if err != nil {
-		ErrorLogger.Print("Trouble handling login page render. ", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
