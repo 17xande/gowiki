@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gorilla/sessions"
@@ -15,7 +16,7 @@ type ctxKey string
 const sessKey ctxKey = "session"
 
 // UserSession stores the current user session
-var UserSession *sessions.Session
+// var UserSession *sessions.Session
 
 // SessionInit initialises the sessio options
 func SessionInit() {
@@ -42,28 +43,13 @@ func SessionMiddleware(db *DB) negroni.HandlerFunc {
 		if s.Values["id"] == nil {
 			// if we're already in the login page then don't redirect to the login page again.
 			if r.URL.Path != "/login" {
-				http.Redirect(w, r, "/login", http.StatusFound)
+				http.Redirect(w, r.WithContext(ctx), "/login", http.StatusFound)
 			}
-			next(w, r)
-			return
 		}
 
 		ctx = context.WithValue(ctx, sessKey, s)
 		next(w, r.WithContext(ctx))
 	})
-}
-
-// SessionCreate handles login sessions in the site
-func SessionCreate(w http.ResponseWriter, r *http.Request, user *User) {
-	getSession(w, r)
-
-	// Set some session values
-	UserSession.Values["id"] = user.ID.Hex()
-	UserSession.Values["name"] = user.Name
-	UserSession.Values["email"] = user.Email
-	UserSession.Values["level"] = user.Level
-	UserSession.Values["admin"] = user.Admin
-	UserSession.Save(r, w)
 }
 
 // SessionDelete removes the current user session
@@ -74,11 +60,20 @@ func SessionDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func levelCheck(w http.ResponseWriter, r *http.Request, d *Document) bool {
-	level := UserSession.Values["level"].(int)
+	ctx := r.Context()
+	s, ok := ctx.Value(sessKey).(*sessions.Session)
+	if !ok {
+		err := errors.New("Error retrieving the session from context.\n")
+		ErrorLogger.Print(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return false
+	}
+
+	level := s.Values["level"].(int)
 
 	if level < d.Level {
-		UserSession.AddFlash("Sorry. You're not allowed to view that page", "warning")
-		UserSession.Save(r, w)
+		s.AddFlash("Sorry. You're not allowed to view that page", "warning")
+		s.Save(r, w)
 		return false
 	}
 
@@ -86,25 +81,25 @@ func levelCheck(w http.ResponseWriter, r *http.Request, d *Document) bool {
 }
 
 // SessionHandler redirects to the login page if no session is found
-func SessionHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		getSession(w, r)
+// func SessionHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		getSession(w, r)
 
-		if UserSession.Values["id"] == nil {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
+// 		if UserSession.Values["id"] == nil {
+// 			http.Redirect(w, r, "/login", http.StatusFound)
+// 			return
+// 		}
 
-		fn(w, r)
-	}
-}
+// 		fn(w, r)
+// 	}
+// }
 
-// getSession Retrieves session if there is one
-func getSession(w http.ResponseWriter, r *http.Request) {
-	// Get a session - Get() always returns a session, even if empty
-	var err error
-	UserSession, err = store.Get(r, "user")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
+// // getSession Retrieves session if there is one
+// func getSession(w http.ResponseWriter, r *http.Request) {
+// 	// Get a session - Get() always returns a session, even if empty
+// 	var err error
+// 	UserSession, err = store.Get(r, "user")
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 	}
+// }

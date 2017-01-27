@@ -1,9 +1,11 @@
 package models
 
 import (
+	"errors"
 	"net/http"
 	"path"
 
+	"github.com/gorilla/sessions"
 	"github.com/unrolled/render"
 
 	"strconv"
@@ -26,137 +28,193 @@ type User struct {
 const userCol = "users"
 
 // UserHandler handles any requests made to the user interface
-func UserHandler(w http.ResponseWriter, r *http.Request) {
-	users, err := findAllUsers()
-	user := getUserFromSession()
-	if err != nil {
-		ErrorLogger.Print("Error trying to find all users: \n", err)
-		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
-		UserSession.Save(r, w)
-		http.Redirect(w, r, "/", http.StatusFound)
-		err = nil
-		return
-	}
-
-	data := map[string]interface{}{
-		"users": users,
-		"user":  user,
-	}
-
-	RenderTemplate(w, r, "users", data)
-}
-
-// UserEditHandler handles the edit user page
-func UserEditHandler(w http.ResponseWriter, r *http.Request) {
-	var err error
-	editUser := &User{}
-	exists := false
-	user := getUserFromSession()
-	page := "userEdit"
-
-	_, id := path.Split(r.URL.Path)
-
-	if len(id) > 0 {
-		editUser, err = findUser(id)
-		exists = true
-
-		if err != nil {
-			ErrorLogger.Print("Error trying to find user {id: "+id+"}", err)
-			UserSession.AddFlash("Error. User could not be retrieved.", "error")
-			UserSession.Save(r, w)
-			err = nil
-		} else if editUser.ID == user.ID { // check if the user is editing his own account
-			page = "account"
-		}
-	}
-
-	tmpData := map[string]interface{}{
-		"exists":   exists,
-		"editUser": editUser,
-		"user":     user,
-		"page":     page,
-	}
-
-	RenderTemplate(w, r, "userEdit", tmpData)
-}
-
-// UserSaveHandler handles the save user page
-func UserSaveHandler(w http.ResponseWriter, r *http.Request) {
-	var exists bool
-	var u *User
-	user := getUserFromSession()
-
-	if r.Method == "POST" {
-		r.ParseForm()
-		name := r.Form["name"][0]
-		email := r.Form["email"][0]
-		password := r.Form["password"][0]
-		admin := len(r.Form["admin"]) > 0 && r.Form["admin"][0] == "on"
-		tech := len(r.Form["tech"]) > 0 && r.Form["tech"][0] == "on"
-		level, err := strconv.Atoi(r.Form["level"][0])
-
-		if err != nil {
-			ErrorLogger.Print("Could not convert 'level' to int. ", err)
-			level = 0
-			err = nil
-		}
-
-		u = &User{
-			Name:  name,
-			Email: email,
-			Level: level,
-			Admin: admin,
-			Tech:  tech,
-		}
-
-		_, id := path.Split(r.URL.Path)
-		if id != "" { // existing user
-			u.ID = bson.ObjectIdHex(id)
-		} else { // new user
-			// check if user already exists in the database
-			exists, err = u.exists()
-			if err != nil {
-				ErrorLogger.Print("Error lookin for duplicate user: {name: "+u.Name+", email: "+u.Email+"}", err)
-				err = nil
-			}
-
-			if exists {
-				UserSession.AddFlash("Sorry, a user with this name or email already exists.", "warning")
-				UserSession.Save(r, w)
-				InfoLogger.Print("User tried to add a duplicate user: {name: " + u.Name + ", email: " + u.Email + "}")
-				http.Redirect(w, r, "/users/edit/", http.StatusFound)
-				return
-			}
-
-			u.ID = bson.NewObjectId()
-		}
-
-		// If no new password is supplied, don't change the old one.
-		if password != "" {
-			u.Password = []byte(password)
-			err := u.hashPassword()
-
-			if err != nil {
-				ErrorLogger.Print("Could not hash user's password. ", err)
-			}
-		}
-
-		err = u.Save()
-		if err != nil {
-			ErrorLogger.Print("Could not save user. ", err)
+func UserHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		users, err := findAllUsers()
+		// Get the user session from the context.
+		ctx := r.Context()
+		s, ok := ctx.Value(sessKey).(*sessions.Session)
+		if !ok {
+			err := errors.New("Error retrieving the session from context.\n")
+			ErrorLogger.Print(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		InfoLogger.Print("User saved: {id: " + u.ID.Hex() + "}")
-		UserSession.AddFlash("User saved successfully", "success")
-		UserSession.Save(r, w)
-	}
+		user, ok := getUserFromSession(s)
+		if !ok {
+			return
+		}
 
-	if user.Admin {
-		http.Redirect(w, r, "/users/edit/", http.StatusFound)
-	} else {
-		http.Redirect(w, r, "/", http.StatusFound)
+		if err != nil {
+			ErrorLogger.Print("Error trying to find all users: \n", err)
+			s.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+			s.Save(r, w)
+			http.Redirect(w, r, "/", http.StatusFound)
+			err = nil
+			return
+		}
+
+		data := map[string]interface{}{
+			"users": users,
+			"user":  user,
+		}
+
+		err = rend.HTML(w, http.StatusFound, "user/index", data)
+		if err != nil {
+			ErrorLogger.Print("Error trying to display users\n", err)
+			err = nil
+		}
+	}
+}
+
+// UserEditHandler handles the edit user page
+func UserEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		editUser := &User{}
+		exists := false
+		// Get the user session from the context.
+		ctx := r.Context()
+		s, ok := ctx.Value(sessKey).(*sessions.Session)
+		if !ok {
+			err := errors.New("Error retrieving the session from context.\n")
+			ErrorLogger.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		user, ok := getUserFromSession(s)
+		if !ok {
+			return
+		}
+
+		page := "user/edit"
+
+		_, id := path.Split(r.URL.Path)
+
+		if len(id) > 0 {
+			editUser, err = findUser(id)
+			exists = true
+
+			if err != nil {
+				ErrorLogger.Print("Error trying to find user {id: "+id+"}", err)
+				s.AddFlash("Error. User could not be retrieved.", "error")
+				s.Save(r, w)
+				err = nil
+			} else if editUser.ID == user.ID { // check if the user is editing his own account
+				page = "account"
+			}
+		}
+
+		tmpData := map[string]interface{}{
+			"exists":   exists,
+			"editUser": editUser,
+			"user":     user,
+			"page":     page,
+		}
+
+		err = rend.HTML(w, http.StatusFound, "user/edit", tmpData)
+		if err != nil {
+			ErrorLogger.Print("Error rendering page - edit.\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+// UserSaveHandler handles the save user page
+func UserSaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var exists bool
+		var u *User
+
+		// Get the user session from the context.
+		ctx := r.Context()
+		s, ok := ctx.Value(sessKey).(*sessions.Session)
+		if !ok {
+			err := errors.New("Error retrieving the session from context.\n")
+			ErrorLogger.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		user, ok := getUserFromSession(s)
+		if !ok {
+			return
+		}
+
+		if r.Method == "POST" {
+			r.ParseForm()
+			name := r.Form["name"][0]
+			email := r.Form["email"][0]
+			password := r.Form["password"][0]
+			admin := len(r.Form["admin"]) > 0 && r.Form["admin"][0] == "on"
+			tech := len(r.Form["tech"]) > 0 && r.Form["tech"][0] == "on"
+			level, err := strconv.Atoi(r.Form["level"][0])
+
+			if err != nil {
+				ErrorLogger.Print("Could not convert 'level' to int. ", err)
+				level = 0
+				err = nil
+			}
+
+			u = &User{
+				Name:  name,
+				Email: email,
+				Level: level,
+				Admin: admin,
+				Tech:  tech,
+			}
+
+			_, id := path.Split(r.URL.Path)
+			if id != "" { // existing user
+				u.ID = bson.ObjectIdHex(id)
+			} else { // new user
+				// check if user already exists in the database
+				exists, err = u.exists()
+				if err != nil {
+					ErrorLogger.Print("Error lookin for duplicate user: {name: "+u.Name+", email: "+u.Email+"}", err)
+					err = nil
+				}
+
+				if exists {
+					s.AddFlash("Sorry, a user with this name or email already exists.", "warning")
+					s.Save(r, w)
+					InfoLogger.Print("User tried to add a duplicate user: {name: " + u.Name + ", email: " + u.Email + "}")
+					http.Redirect(w, r, "/users/edit/", http.StatusFound)
+					return
+				}
+
+				u.ID = bson.NewObjectId()
+			}
+
+			// If no new password is supplied, don't change the old one.
+			if password != "" {
+				u.Password = []byte(password)
+				err := u.hashPassword()
+
+				if err != nil {
+					ErrorLogger.Print("Could not hash user's password. ", err)
+				}
+			}
+
+			err = u.Save()
+			if err != nil {
+				ErrorLogger.Print("Could not save user. ", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			InfoLogger.Print("User saved: {id: " + u.ID.Hex() + "}")
+			s.AddFlash("User saved successfully", "success")
+			s.Save(r, w)
+		}
+
+		if user.Admin {
+			http.Redirect(w, r, "/users/edit/", http.StatusFound)
+		} else {
+			http.Redirect(w, r, "/", http.StatusFound)
+		}
 	}
 }
 
@@ -167,6 +225,17 @@ func UserLoginHandler(rend *render.Render) http.HandlerFunc {
 		var err error
 		var user *User
 		var found bool
+
+		// Get the user session from the context.
+		ctx := r.Context()
+		t := ctx.Value(sessKey)
+		s, ok := t.(*sessions.Session)
+		if !ok {
+			err := errors.New("Error retrieving the session from context.\n")
+			ErrorLogger.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		if r.Method == "POST" {
 			r.ParseForm()
@@ -198,12 +267,18 @@ func UserLoginHandler(rend *render.Render) http.HandlerFunc {
 				InfoLogger.Print("Failed user login attempt: {email: " + user.Email + "}")
 			} else {
 				InfoLogger.Print("Successful user login: {email: " + user.Email + "}")
-				SessionCreate(w, r, user)
+
+				s.Values["id"] = user.ID.Hex()
+				s.Values["name"] = user.Name
+				s.Values["email"] = user.Email
+				s.Values["level"] = user.Level
+				s.Values["admin"] = user.Admin
+				s.Save(r, w)
 			}
 		}
 
 		// handle if a user is already logged in
-		if UserSession != nil && UserSession.Values["id"] != nil {
+		if s != nil && s.Values["id"] != nil {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -224,14 +299,22 @@ func UserLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusFound)
 }
 
-func getUserFromSession() (user *User) {
-	return &User{
-		ID:    bson.ObjectIdHex(UserSession.Values["id"].(string)),
-		Name:  UserSession.Values["name"].(string),
-		Email: UserSession.Values["email"].(string),
-		Level: UserSession.Values["level"].(int),
-		Admin: UserSession.Values["admin"].(bool),
+func getUserFromSession(s *sessions.Session) (user *User, ok bool) {
+	if s.Values["id"] == nil {
+		ok = false
+		err := errors.New("Error retrieving user from session.\n")
+		ErrorLogger.Print(err)
+		return nil, ok
 	}
+
+	ok = true
+	return &User{
+		ID:    bson.ObjectIdHex(s.Values["id"].(string)),
+		Name:  s.Values["name"].(string),
+		Email: s.Values["email"].(string),
+		Level: s.Values["level"].(int),
+		Admin: s.Values["admin"].(bool),
+	}, ok
 }
 
 func findAllUsers() (*[]User, error) {

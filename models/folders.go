@@ -1,10 +1,14 @@
 package models
 
 import (
+	"errors"
 	"html/template"
 	"net/http"
 	"path"
 	"strconv"
+
+	"github.com/gorilla/sessions"
+	"github.com/unrolled/render"
 
 	"encoding/json"
 
@@ -28,277 +32,374 @@ type Folder struct {
 }
 
 // FolderHandler handles the folder page, where all the documents in a folder are displayed
-func FolderHandler(w http.ResponseWriter, r *http.Request) {
-	var err error
-	f := &Folder{}
-	user := getUserFromSession()
+func FolderHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		f := &Folder{}
 
-	_, id := path.Split(r.URL.Path)
+		_, id := path.Split(r.URL.Path)
 
-	if len(id) == 0 {
-		http.Redirect(w, r, "/folders/", http.StatusFound)
-		return
+		if len(id) == 0 {
+			http.Redirect(w, r, "/folders/", http.StatusFound)
+			return
+		}
+
+		// Get the user session from the context.
+		ctx := r.Context()
+		s, ok := ctx.Value(sessKey).(*sessions.Session)
+		if !ok {
+			err := errors.New("Error retrieving the session from context.\n")
+			ErrorLogger.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		user, ok := getUserFromSession(s)
+		if !ok {
+			return
+		}
+
+		f, err = findFolder(id)
+		if err != nil {
+			ErrorLogger.Print("Error trying to find folder: {id: "+id+"}\n", err)
+			s.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+			s.Save(r, w)
+			http.Redirect(w, r, "/folders/", http.StatusFound)
+			err = nil
+			return
+		}
+
+		err = f.findDocsForFolder()
+		if err != nil {
+			ErrorLogger.Print("Error trying to find document for folder: {id: "+id+"}\n", err)
+			s.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+			s.Save(r, w)
+			http.Redirect(w, r, "/folders/", http.StatusFound)
+			err = nil
+			return
+		}
+
+		data := map[string]interface{}{
+			"user":   user,
+			"folder": f,
+		}
+
+		RenderTemplate(w, r, "folder", data)
+		err = rend.HTML(w, http.StatusFound, "folder/view", data)
+		if err != nil {
+			ErrorLogger.Print("Error rendering page - edit.\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
-
-	f, err = findFolder(id)
-	if err != nil {
-		ErrorLogger.Print("Error trying to find folder: {id: "+id+"}\n", err)
-		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
-		UserSession.Save(r, w)
-		http.Redirect(w, r, "/folders/", http.StatusFound)
-		err = nil
-		return
-	}
-
-	err = f.findDocsForFolder()
-	if err != nil {
-		ErrorLogger.Print("Error trying to find document for folder: {id: "+id+"}\n", err)
-		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
-		UserSession.Save(r, w)
-		http.Redirect(w, r, "/folders/", http.StatusFound)
-		err = nil
-		return
-	}
-
-	data := map[string]interface{}{
-		"user":   user,
-		"folder": f,
-	}
-
-	RenderTemplate(w, r, "folder", data)
 }
 
 // FoldersHandler handles the indexing of folders
-func FoldersHandler(w http.ResponseWriter, r *http.Request) {
-	folders, err := findAllFolders()
-	user := getUserFromSession()
-	if err != nil {
-		ErrorLogger.Print("Error trying to find all users: \n", err)
-		UserSession.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
-		UserSession.Save(r, w)
-		http.Redirect(w, r, "/", http.StatusFound)
-		err = nil
-		return
-	}
+func FoldersHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		folders, err := findAllFolders()
+		// Get the user session from the context.
+		ctx := r.Context()
+		s, ok := ctx.Value(sessKey).(*sessions.Session)
+		if !ok {
+			err := errors.New("Error retrieving the session from context.\n")
+			ErrorLogger.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	data := map[string]interface{}{
-		"folders": folders,
-		"user":    user,
-	}
+		user, ok := getUserFromSession(s)
+		if !ok {
+			return
+		}
 
-	RenderTemplate(w, r, "folders", data)
+		if err != nil {
+			ErrorLogger.Print("Error trying to find all users: \n", err)
+			s.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
+			s.Save(r, w)
+			http.Redirect(w, r, "/", http.StatusFound)
+			err = nil
+			return
+		}
+
+		data := map[string]interface{}{
+			"folders": folders,
+			"user":    user,
+		}
+
+		err = rend.HTML(w, http.StatusFound, "folder/index", data)
+		if err != nil {
+			ErrorLogger.Print("Error rendering page - folder/index.\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+	}
 }
 
 // FolderEditHandler handles the editing of folders
-func FolderEditHandler(w http.ResponseWriter, r *http.Request) {
-	var err error
-	var users *[]User
-	f := &Folder{}
-	exists := false
-	user := getUserFromSession()
+func FolderEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		var users *[]User
+		f := &Folder{}
+		exists := false
 
-	_, id := path.Split(r.URL.Path)
+		// Get the user session from the context.
+		ctx := r.Context()
+		s, ok := ctx.Value(sessKey).(*sessions.Session)
+		if !ok {
+			err := errors.New("Error retrieving the session from context.\n")
+			ErrorLogger.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	if len(id) > 0 {
-		f, err = findFolder(id)
-		exists = true
-	}
+		user, ok := getUserFromSession(s)
+		if !ok {
+			return
+		}
 
-	if err != nil {
-		ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
-		UserSession.AddFlash("Error. Folder could not be retrieved.", "error")
-		UserSession.Save(r, w)
-		err = nil
-	}
+		_, id := path.Split(r.URL.Path)
 
-	users, err = findAllUsers()
+		if len(id) > 0 {
+			f, err = findFolder(id)
+			exists = true
+		}
 
-	if err != nil {
-		ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
-		UserSession.AddFlash("Error trying to find users for this folder {id: "+id+"}", "error")
-		UserSession.Save(r, w)
-		err = nil
-	}
+		if err != nil {
+			ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
+			s.AddFlash("Error. Folder could not be retrieved.", "error")
+			s.Save(r, w)
+			err = nil
+		}
 
-	tmpData := map[string]interface{}{
-		"user":   user,
-		"users":  users,
-		"folder": f,
-		"exists": exists,
-	}
+		users, err = findAllUsers()
 
-	RenderTemplate(w, r, "folderEdit", tmpData)
-	if err != nil {
-		ErrorLogger.Print("Error trying to display folder {id: "+id+"}", err)
-		UserSession.AddFlash("Error. Folder could not be displayed.", "error")
-		UserSession.Save(r, w)
-		err = nil
+		if err != nil {
+			ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
+			s.AddFlash("Error trying to find users for this folder {id: "+id+"}", "error")
+			s.Save(r, w)
+			err = nil
+		}
+
+		tmpData := map[string]interface{}{
+			"user":   user,
+			"users":  users,
+			"folder": f,
+			"exists": exists,
+		}
+
+		err = rend.HTML(w, http.StatusFound, "folder/edit", tmpData)
+		if err != nil {
+			ErrorLogger.Print("Error rendering page - folder/edit.\n", err)
+			s.AddFlash("Error. Folder could not be displayed.", "error")
+			s.Save(r, w)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
 // FolderSaveHandler handles the saving of folders
-func FolderSaveHandler(w http.ResponseWriter, r *http.Request) {
-	var f *Folder
-	_, id := path.Split(r.URL.Path)
+func FolderSaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var f *Folder
+		_, id := path.Split(r.URL.Path)
 
-	if r.Method == "POST" {
-		var userIDs []bson.ObjectId
-		r.ParseForm()
-		name := r.Form["name"][0]
-		strUserIDs := r.Form["users"]
-		level, err := strconv.Atoi(r.Form["level"][0])
-
-		if err != nil {
-			ErrorLogger.Print("Error parsing folder level POST. {id: "+id+"} ", err.Error())
-			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.", "error")
-			UserSession.Save(r, w)
-			err = nil
+		// Get the user session from the context.
+		ctx := r.Context()
+		s, ok := ctx.Value(sessKey).(*sessions.Session)
+		if !ok {
+			err := errors.New("Error retrieving the session from context.\n")
+			ErrorLogger.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		for _, uID := range strUserIDs {
-			userIDs = append(userIDs, bson.ObjectIdHex(uID))
+		if r.Method == "POST" {
+			var userIDs []bson.ObjectId
+			r.ParseForm()
+			name := r.Form["name"][0]
+			strUserIDs := r.Form["users"]
+			level, err := strconv.Atoi(r.Form["level"][0])
+
+			if err != nil {
+				ErrorLogger.Print("Error parsing folder level POST. {id: "+id+"} ", err.Error())
+				s.AddFlash("Error saving folder settings. If this error persists, please contact support.", "error")
+				s.Save(r, w)
+				err = nil
+			}
+
+			for _, uID := range strUserIDs {
+				userIDs = append(userIDs, bson.ObjectIdHex(uID))
+			}
+
+			f = &Folder{
+				Name:    name,
+				Level:   level,
+				UserIDs: userIDs,
+			}
+
+			if id != "" {
+				f.ID = bson.ObjectIdHex(id)
+			} else {
+				f.ID = bson.NewObjectId()
+			}
+
+			err = f.save()
+
+			if err != nil {
+				ErrorLogger.Print("Error saving folder to database. {id: "+id+"} ", err.Error())
+				s.AddFlash("Error saving folder settings. If this error persists, please contact support.", "error")
+				s.Save(r, w)
+				err = nil
+			}
+
+			InfoLogger.Print("Folder saved {id: " + f.ID.Hex() + "}")
 		}
 
-		f = &Folder{
-			Name:    name,
-			Level:   level,
-			UserIDs: userIDs,
-		}
-
-		if id != "" {
-			f.ID = bson.ObjectIdHex(id)
-		} else {
-			f.ID = bson.NewObjectId()
-		}
-
-		err = f.save()
-
-		if err != nil {
-			ErrorLogger.Print("Error saving folder to database. {id: "+id+"} ", err.Error())
-			UserSession.AddFlash("Error saving folder settings. If this error persists, please contact support.", "error")
-			UserSession.Save(r, w)
-			err = nil
-		}
-
-		InfoLogger.Print("Folder saved {id: " + f.ID.Hex() + "}")
+		http.Redirect(w, r, "/folders/", http.StatusFound)
 	}
-
-	http.Redirect(w, r, "/folders/", http.StatusFound)
 }
 
 // FolderPermissionsEditHandler handles permission editing for folders
-func FolderPermissionsEditHandler(w http.ResponseWriter, r *http.Request) {
-	var err error
-	f := &Folder{}
-	user := getUserFromSession()
+func FolderPermissionsEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		f := &Folder{}
+		// Get the user session from the context.
+		ctx := r.Context()
+		s, ok := ctx.Value(sessKey).(*sessions.Session)
+		if !ok {
+			err := errors.New("Error retrieving the session from context.\n")
+			ErrorLogger.Print(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	_, id := path.Split(r.URL.Path)
+		user, ok := getUserFromSession(s)
+		if !ok {
+			return
+		}
 
-	if len(id) == 0 {
-		UserSession.AddFlash("Couldn't edit permissions for that folder.", "warning")
-		UserSession.Save(r, w)
-		ErrorLogger.Print("Tried to load the Folder Permissions page without a FolderID")
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+		_, id := path.Split(r.URL.Path)
 
-	f, err = findFolder(id)
-	if err != nil {
-		ErrorLogger.Print("Error trying to find folder {id: "+id+"} ", err)
-		UserSession.AddFlash(" Folder could not be retrieved.", "error")
-		UserSession.Save(r, w)
-		http.Redirect(w, r, "/folder/"+id, http.StatusFound)
-		err = nil
-	}
+		if len(id) == 0 {
+			s.AddFlash("Couldn't edit permissions for that folder.", "warning")
+			s.Save(r, w)
+			ErrorLogger.Print("Tried to load the Folder Permissions page without a FolderID")
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
 
-	err = f.getPermissions()
-	if err != nil {
-		ErrorLogger.Print("Error trying to get permissions for folder {id: "+id+"} ", err)
-		UserSession.AddFlash(" Folder permissions could not be retrieved.", "error")
-		UserSession.Save(r, w)
-		http.Redirect(w, r, "/folder/"+id, http.StatusFound)
-		err = nil
-	}
+		f, err = findFolder(id)
+		if err != nil {
+			ErrorLogger.Print("Error trying to find folder {id: "+id+"} ", err)
+			s.AddFlash(" Folder could not be retrieved.", "error")
+			s.Save(r, w)
+			http.Redirect(w, r, "/folder/"+id, http.StatusFound)
+			err = nil
+		}
 
-	// Get all the userIDs out of any permissions for this folder.
-	iPerm := len(f.Permissions)
-	notUserIds := make([]bson.ObjectId, iPerm)
+		err = f.getPermissions()
+		if err != nil {
+			ErrorLogger.Print("Error trying to get permissions for folder {id: "+id+"} ", err)
+			s.AddFlash(" Folder permissions could not be retrieved.", "error")
+			s.Save(r, w)
+			http.Redirect(w, r, "/folder/"+id, http.StatusFound)
+			err = nil
+		}
 
-	for i, perm := range f.Permissions {
-		notUserIds[i] = perm.UserID
-	}
+		// Get all the userIDs out of any permissions for this folder.
+		iPerm := len(f.Permissions)
+		notUserIds := make([]bson.ObjectId, iPerm)
 
-	users, err := findNotUsers(&notUserIds)
-	if err != nil {
-		ErrorLogger.Print("Error trying to find rest of users.", err)
-		UserSession.AddFlash("Couldn't retrieve rest of users from database", "error")
-		UserSession.Save(r, w)
-		err = nil
-	}
+		for i, perm := range f.Permissions {
+			notUserIds[i] = perm.UserID
+		}
 
-	// permittedUsers, err := findUsers()
-	jsPermissions, err := json.Marshal(f.Permissions)
-	if err != nil {
-		ErrorLogger.Print("Error trying to marshal permissions", err)
-		UserSession.AddFlash("We're experiencing some technical difficulties on that page.", "error")
-		UserSession.Save(r, w)
-		err = nil
-	}
+		users, err := findNotUsers(&notUserIds)
+		if err != nil {
+			ErrorLogger.Print("Error trying to find rest of users.", err)
+			s.AddFlash("Couldn't retrieve rest of users from database", "error")
+			s.Save(r, w)
+			err = nil
+		}
 
-	jsUsers, err := json.Marshal(users)
-	if err != nil {
-		ErrorLogger.Print("Error trying to marshal users.", err)
-		UserSession.AddFlash("We're experiencing some technical difficulties on that page.", "error")
-		UserSession.Save(r, w)
-		err = nil
-	}
+		// permittedUsers, err := findUsers()
+		jsPermissions, err := json.Marshal(f.Permissions)
+		if err != nil {
+			ErrorLogger.Print("Error trying to marshal permissions", err)
+			s.AddFlash("We're experiencing some technical difficulties on that page.", "error")
+			s.Save(r, w)
+			err = nil
+		}
 
-	tmpData := map[string]interface{}{
-		"user":          user,
-		"users":         users,
-		"folder":        f,
-		"jsPermissions": template.JS(jsPermissions),
-		"jsUsers":       template.JS(jsUsers),
-	}
+		jsUsers, err := json.Marshal(users)
+		if err != nil {
+			ErrorLogger.Print("Error trying to marshal users.", err)
+			s.AddFlash("We're experiencing some technical difficulties on that page.", "error")
+			s.Save(r, w)
+			err = nil
+		}
 
-	RenderTemplate(w, r, "folderPermissions", tmpData)
-	if err != nil {
-		ErrorLogger.Print("Error trying to display folder {id: "+id+"}", err)
-		UserSession.AddFlash("Error. Folder could not be displayed.", "error")
-		UserSession.Save(r, w)
-		err = nil
+		tmpData := map[string]interface{}{
+			"user":          user,
+			"users":         users,
+			"folder":        f,
+			"jsPermissions": template.JS(jsPermissions),
+			"jsUsers":       template.JS(jsUsers),
+		}
+
+		err = rend.HTML(w, http.StatusFound, "folder/permissions", tmpData)
+		if err != nil {
+			ErrorLogger.Print("Error trying to display folder {id: "+id+"}", err)
+			s.AddFlash("Error. Folder could not be displayed.", "error")
+			s.Save(r, w)
+			err = nil
+		}
 	}
 }
 
 // FolderPermissionsSaveHandler handles save POST requests with folder permission data.
-func FolderPermissionsSaveHandler(w http.ResponseWriter, r *http.Request) {
-	var p []Permission
-	var err error
-	_, id := path.Split(r.URL.Path)
+func FolderPermissionsSaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var p []Permission
+		var err error
+		_, id := path.Split(r.URL.Path)
 
-	if r.Method == "POST" {
-		r.ParseForm()
-		strPerms := r.Form["folderPermissions"][0]
-		err = json.Unmarshal([]byte(strPerms), &p)
-		if err != nil {
-			ErrorLogger.Print("Error unmarshalling folder permissions. {id: "+id+"}\n", err.Error())
-			UserSession.AddFlash("Error loading folder permissions.", "error")
-			UserSession.Save(r, w)
-			http.Redirect(w, r, "/folder/edit/"+id, http.StatusFound)
-			return
+		if r.Method == "POST" {
+			// Get the user session from the context.
+			ctx := r.Context()
+			s, ok := ctx.Value(sessKey).(*sessions.Session)
+			if !ok {
+				err := errors.New("Error retrieving the session from context.\n")
+				ErrorLogger.Print(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			r.ParseForm()
+			strPerms := r.Form["folderPermissions"][0]
+			err = json.Unmarshal([]byte(strPerms), &p)
+			if err != nil {
+				ErrorLogger.Print("Error unmarshalling folder permissions. {id: "+id+"}\n", err.Error())
+				s.AddFlash("Error loading folder permissions.", "error")
+				s.Save(r, w)
+				http.Redirect(w, r, "/folder/edit/"+id, http.StatusFound)
+				return
+			}
+
+			err = permissionSave(p)
+			if err != nil {
+				ErrorLogger.Print("Error saving folder permissions. {id: "+id+"}\n", err.Error())
+				s.AddFlash("Error saving folder permission.", "error")
+				http.Redirect(w, r, "/folder/edit/"+id, http.StatusFound)
+				return
+			}
+			InfoLogger.Print("Folder permissions saved {id: " + id + "}")
 		}
 
-		err = permissionSave(p)
-		if err != nil {
-			ErrorLogger.Print("Error saving folder permissions. {id: "+id+"}\n", err.Error())
-			UserSession.AddFlash("Error saving folder permission.", "error")
-			http.Redirect(w, r, "/folder/edit/"+id, http.StatusFound)
-			return
-		}
-		InfoLogger.Print("Folder permissions saved {id: " + id + "}")
+		http.Redirect(w, r, "/folder/permissions/"+id, http.StatusFound)
 	}
-
-	http.Redirect(w, r, "/folder/permissions/"+id, http.StatusFound)
 }
 
 func findAllFolders() (*[]Folder, error) {
@@ -361,10 +462,9 @@ func findFolderWithPermissions(id bson.ObjectId) (*Folder, error) {
 	return &folder, err
 }
 
-func findFoldersAndDocuments() (*[]Folder, error) {
+func findFoldersAndDocuments(user *User) (*[]Folder, error) {
 	session := dbConnect()
 	defer session.Close()
-	user := getUserFromSession()
 	collection := session.DB(db).C(col)
 	var folders []Folder
 
