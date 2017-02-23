@@ -60,11 +60,7 @@ func UserHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			"user":  user,
 		}
 
-		err = rend.HTML(w, http.StatusFound, "user/index", data)
-		if err != nil {
-			ErrorLogger.Print("Error trying to display users\n", err)
-			err = nil
-		}
+		RenderTemplate(rend, w, r, "user/index", data)
 	}
 }
 
@@ -107,18 +103,14 @@ func UserEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			}
 		}
 
-		tmpData := map[string]interface{}{
+		data := map[string]interface{}{
 			"exists":   exists,
 			"editUser": editUser,
 			"user":     user,
 			"page":     page,
 		}
 
-		err = rend.HTML(w, http.StatusFound, "user/edit", tmpData)
-		if err != nil {
-			ErrorLogger.Print("Error rendering page - edit.\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		RenderTemplate(rend, w, r, "user/edit", data)
 	}
 }
 
@@ -250,7 +242,7 @@ func UserLoginHandler(rend *render.Render) http.HandlerFunc {
 			if err != nil {
 				ErrorLogger.Print("Could not hash password for user {email: "+user.Email+"} ", err)
 				data["flashError"] = "There was a problem with your password. Please try again."
-				_ = templates["login.html"].ExecuteTemplate(w, "base", data)
+				RenderTemplate(rend, w, r, "login", data)
 				return
 			}
 
@@ -258,7 +250,7 @@ func UserLoginHandler(rend *render.Render) http.HandlerFunc {
 			if err != nil {
 				ErrorLogger.Print("Problem while looking for user in database. {email: "+user.Email+"} ", err)
 				data["flashError"] = "Error trying to auntenticate your account. Please try again."
-				_ = templates["login.html"].ExecuteTemplate(w, "base", data)
+				RenderTemplate(rend, w, r, "login", data)
 				return
 			}
 
@@ -283,13 +275,7 @@ func UserLoginHandler(rend *render.Render) http.HandlerFunc {
 			return
 		}
 
-		err = rend.HTML(w, http.StatusFound, "login", data)
-		// err = templates["login.html"].ExecuteTemplate(w, "base", data)
-		if err != nil {
-			ErrorLogger.Print("Trouble handling login page render. ", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		return
+		RenderTemplate(rend, w, r, "login", data)
 	}
 }
 

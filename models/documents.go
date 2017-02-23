@@ -123,11 +123,7 @@ func IndexHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			"user":    user,
 		}
 
-		err = rend.HTML(w, http.StatusFound, "index", data)
-		if err != nil {
-			ErrorLogger.Print("Error rendering page - index.\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		RenderTemplate(rend, w, r, "index", data)
 	}
 }
 
@@ -185,11 +181,7 @@ func ViewHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			"user":     user,
 		}
 
-		err = rend.HTML(w, http.StatusFound, "view", data)
-		if err != nil {
-			ErrorLogger.Print("Error, rendering page - view.\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		RenderTemplate(rend, w, r, "view", data)
 	}
 }
 
@@ -264,11 +256,7 @@ func EditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			"folders":  folders,
 		}
 
-		err = rend.HTML(w, http.StatusFound, "edit", data)
-		if err != nil {
-			ErrorLogger.Print("Error rendering page - edit.\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		RenderTemplate(rend, w, r, "edit", data)
 	}
 }
 

@@ -44,7 +44,7 @@ func main() {
 
 	mux := mux.NewRouter()
 	mux.HandleFunc("/", models.IndexHandler(db, rend)).Methods("GET")
-	mux.HandleFunc("/notfound", models.NotFoundHandler).Methods("GET")
+	mux.HandleFunc("/notfound", models.NotFoundHandler(rend)).Methods("GET")
 	mux.HandleFunc("/login", models.UserLoginHandler(rend))
 	mux.HandleFunc("/logout", models.UserLogoutHandler).Methods("GET")
 	mux.HandleFunc("/view", models.ViewHandler(db, rend)).Methods("GET")
@@ -57,7 +57,7 @@ func main() {
 	mux.HandleFunc("/folder/view", models.FolderHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/folder/edit", models.FolderEditHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/folder/save", models.FolderSaveHandler(db, rend)).Methods("POST")
-	mux.HandleFunc("/folder/permissions", models.FolderPermissionsEditHandler(db, rend)).Methods("POST")
+	mux.HandleFunc("/folder/permissions", models.FolderPermissionsEditHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/folder/permissions/save", models.FolderPermissionsSaveHandler(db, rend)).Methods("POST")
 
 	n := negroni.New()

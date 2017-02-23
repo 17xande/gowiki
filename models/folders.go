@@ -84,12 +84,7 @@ func FolderHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			"folder": f,
 		}
 
-		RenderTemplate(w, r, "folder", data)
-		err = rend.HTML(w, http.StatusFound, "folder/view", data)
-		if err != nil {
-			ErrorLogger.Print("Error rendering page - edit.\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		RenderTemplate(rend, w, r, "folder", data)
 	}
 }
 
@@ -126,12 +121,7 @@ func FoldersHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			"user":    user,
 		}
 
-		err = rend.HTML(w, http.StatusFound, "folder/index", data)
-		if err != nil {
-			ErrorLogger.Print("Error rendering page - folder/index.\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-
+		RenderTemplate(rend, w, r, "folder/index", data)
 	}
 }
 
@@ -181,20 +171,14 @@ func FolderEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			err = nil
 		}
 
-		tmpData := map[string]interface{}{
+		data := map[string]interface{}{
 			"user":   user,
 			"users":  users,
 			"folder": f,
 			"exists": exists,
 		}
 
-		err = rend.HTML(w, http.StatusFound, "folder/edit", tmpData)
-		if err != nil {
-			ErrorLogger.Print("Error rendering page - folder/edit.\n", err)
-			s.AddFlash("Error. Folder could not be displayed.", "error")
-			s.Save(r, w)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		RenderTemplate(rend, w, r, "folder/edit", data)
 	}
 }
 
@@ -341,7 +325,7 @@ func FolderPermissionsEditHandler(db *DB, rend *render.Render) http.HandlerFunc 
 			err = nil
 		}
 
-		tmpData := map[string]interface{}{
+		data := map[string]interface{}{
 			"user":          user,
 			"users":         users,
 			"folder":        f,
@@ -349,13 +333,7 @@ func FolderPermissionsEditHandler(db *DB, rend *render.Render) http.HandlerFunc 
 			"jsUsers":       template.JS(jsUsers),
 		}
 
-		err = rend.HTML(w, http.StatusFound, "folder/permissions", tmpData)
-		if err != nil {
-			ErrorLogger.Print("Error trying to display folder {id: "+id+"}", err)
-			s.AddFlash("Error. Folder could not be displayed.", "error")
-			s.Save(r, w)
-			err = nil
-		}
+		RenderTemplate(rend, w, r, "folder/permissions", data)
 	}
 }
 
