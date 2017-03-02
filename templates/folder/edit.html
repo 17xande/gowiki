@@ -1,9 +1,9 @@
-{{ define "head" }}
+{{ define "head-folder/edit" }}
   <title>SCMS: Edit Folder</title>
-  <link rel="stylesheet" href="/public/dependencies/css/chosen.min.css">
+  <link rel="stylesheet" href="/dependencies/css/chosen.min.css">
 {{ end }}
 
-{{ define "body" }}
+{{ define "body-folder/edit" }}
   <h1>{{ if .exists }}Edit{{ else }}New{{ end }} Folder</h1>
   <form id="frmFolder" action="/folder/save/{{ .folder.ID.Hex}}" method="POST">
     <input id="hdnId" name="folderId" type="hidden" value="{{ .folder.ID.Hex }}">
@@ -26,8 +26,8 @@
   <a href="/folder/permissions/{{ .folder.ID.Hex }}">Edit Folder Permissions</a>
 {{ end }}
 
-{{ define "scripts" }}
-  <script src="/public/dependencies/js/chosen.jquery.min.js"></script>
+{{ define "scripts-folder/edit" }}
+  <script src="/dependencies/js/chosen.jquery.min.js"></script>
   <script>
     $('#slcUsers').chosen({
       no_results_text: "No users found"

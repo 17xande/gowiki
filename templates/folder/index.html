@@ -1,13 +1,13 @@
-{{ define "head-folders" }}
+{{ define "head-folder/index" }}
   <title>RGCMS: Folders</title>
 {{ end }}
 
-{{ define "body-folders" }}
-<div class="container-fluid container-layout"><h3>Folders</h3></div>
+{{ define "body-folder/index" }}
+<div class="container-fluid container-layout"><h3>Folders:</h3></div>
 <div class="container-fluid container-layout">
   <div class="row">
     {{ range $i, $folder := .folders }}
-      <a href="/folder/view/{{ $folder.ID.Hex }}" class="col-xs bubble-link">{{ $folder.Name }}</a>
+    <a href="/folder/view/{{ $folder.ID.Hex }}" class="col-xs bubble-link">{{ $folder.Name }}</a>
     {{ end }}
   </div>
 </div>

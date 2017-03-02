@@ -7,6 +7,7 @@ import (
 	"path"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/unrolled/render"
 
@@ -37,7 +38,8 @@ func FolderHandler(db *DB, rend *render.Render) http.HandlerFunc {
 		var err error
 		f := &Folder{}
 
-		_, id := path.Split(r.URL.Path)
+		vars := mux.Vars(r)
+		id := vars["id"]
 
 		if len(id) == 0 {
 			http.Redirect(w, r, "/folders/", http.StatusFound)
@@ -84,7 +86,7 @@ func FolderHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			"folder": f,
 		}
 
-		RenderTemplate(rend, w, r, "folder", data)
+		RenderTemplate(rend, w, r, "folder/view", data)
 	}
 }
 
@@ -148,7 +150,8 @@ func FolderEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			return
 		}
 
-		_, id := path.Split(r.URL.Path)
+		vars := mux.Vars(r)
+		id := vars["id"]
 
 		if len(id) > 0 {
 			f, err = findFolder(id)

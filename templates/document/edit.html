@@ -1,10 +1,10 @@
-{{define "head"}}
+{{define "head-document/edit"}}
   <title>SCMS|Edit {{.document.Title}}</title>
-  <link rel="stylesheet" href="/public/dependencies/css/quill.snow.css">
-  <link rel="stylesheet" href="/public/dependencies/css/chosen.min.css">
+  <link rel="stylesheet" href="/dependencies/css/quill.snow.css">
+  <link rel="stylesheet" href="/dependencies/css/chosen.min.css">
 {{end}}
 
-{{define "body"}}
+{{define "body-document/edit"}}
 <form id="frmContent" action="/save/{{.document.ID.Hex}}" method="POST">
   <h1>Document Title: <input id="txtTitle" name="title" type="text" autofocus value="{{.document.Title}}"></h1>
   <div id="divQuill">{{.body}}</div>
@@ -14,7 +14,7 @@
     <label for="numLevel">Level:</label>
     <input id="numLevel" name="level" type="number" value="{{.document.Level}}">
     <select id="slcFolder" name="folder" data-placeholder="Select folder..." class="chosen-select">
-      <option></option> <!-- empty option first so there's no default option-->
+      <option></option> <!-- empty option first so there's no default option -->
       {{ range $i, $folder := .folders }}
         <option value="{{ $folder.ID.Hex }}"
           {{ if eq $.document.FolderID $folder.ID }} selected {{ end }}
@@ -37,9 +37,9 @@
 </form>
 {{end}}
 
-{{define "scripts"}}
-  <script src="/public/dependencies/js/quill.min.js"></script>
-  <script src="/public/dependencies/js/chosen.jquery.min.js"></script>
+{{define "scripts-document/edit"}}
+  <script src="/dependencies/js/quill.min.js"></script>
+  <script src="/dependencies/js/chosen.jquery.min.js"></script>
   <script>
     let quill = new Quill('#divQuill', {
       placeholder: "Enter text here",

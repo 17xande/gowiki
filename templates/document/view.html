@@ -1,12 +1,12 @@
-{{ define "head" }}
+{{ define "head-document/view" }}
   <title>SCMS| {{ .document.Title }}</title>
-  <link rel="stylesheet" href="/public/dependencies/css/quill.bubble.css">
+  <link rel="stylesheet" href="/dependencies/css/quill.bubble.css">
 {{ end }}
 
-{{ define "body" }}
+{{ define "body-document/view" }}
   <h1>{{ .document.Title }}</h1>
   {{ if gt .user.Level 6 }}
-    [<a href="/edit/{{.document.ID.Hex}}">Edit</a>]
+    [<a href="/document/edit/{{.document.ID.Hex}}">Edit</a>]
   {{ end }}
   <div id="divQuill">{{.body}}</div>
   <div id="divData">
@@ -15,8 +15,8 @@
   </div>
 {{ end }}
 
-{{ define "scripts" }}
-  <script src="/public/dependencies/js/quill.min.js"></script>
+{{ define "scripts-document/view" }}
+  <script src="/dependencies/js/quill.min.js"></script>
   <script>
     let quill = new Quill('#divQuill', {
       readOnly: true,

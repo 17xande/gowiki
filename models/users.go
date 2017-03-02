@@ -3,8 +3,8 @@ package models
 import (
 	"errors"
 	"net/http"
-	"path"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/unrolled/render"
 
@@ -87,7 +87,8 @@ func UserEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 
 		page := "user/edit"
 
-		_, id := path.Split(r.URL.Path)
+		vars := mux.Vars(r)
+		id := vars["id"]
 
 		if len(id) > 0 {
 			editUser, err = findUser(id)
@@ -158,7 +159,9 @@ func UserSaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
 				Tech:  tech,
 			}
 
-			_, id := path.Split(r.URL.Path)
+			vars := mux.Vars(r)
+			id := vars["id"]
+
 			if id != "" { // existing user
 				u.ID = bson.ObjectIdHex(id)
 			} else { // new user

@@ -26,7 +26,7 @@
         {{ end }}
         {{ if .user.Name }}
         <li class="nav-item {{ if eq .page "account" }}active{{ end }}">
-          <a href="/users/edit/{{.user.ID.Hex}}" class="nav-link">Account</a>
+          <a href="/user/edit/{{.user.ID.Hex}}" class="nav-link">Account</a>
         </li>
         <li class="nav-item">
           <a href="/logout" class="nav-link">Logout</a>
@@ -61,6 +61,7 @@
 
     <div class="container-fluid">
       {{ partial "body" }}
+      {{ yield }}
     </div>
 
     <script src="/dependencies/js/jquery.min.js"></script>

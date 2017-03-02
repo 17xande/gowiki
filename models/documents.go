@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/unrolled/render"
 
@@ -144,7 +145,9 @@ func ViewHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			return
 		}
 
-		_, id := path.Split(r.URL.Path)
+		vars := mux.Vars(r)
+		id := vars["id"]
+
 		var body template.HTML
 		d, err := loadPage(id)
 		if err != nil {
@@ -181,14 +184,15 @@ func ViewHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			"user":     user,
 		}
 
-		RenderTemplate(rend, w, r, "view", data)
+		RenderTemplate(rend, w, r, "document/view", data)
 	}
 }
 
 // EditHandler handles the document edit page
 func EditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, id := path.Split(r.URL.Path)
+		vars := mux.Vars(r)
+		id := vars["id"]
 		d := &Document{}
 		var err error
 		var body template.HTML
@@ -256,7 +260,7 @@ func EditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			"folders":  folders,
 		}
 
-		RenderTemplate(rend, w, r, "edit", data)
+		RenderTemplate(rend, w, r, "document/edit", data)
 	}
 }
 
