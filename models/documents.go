@@ -48,22 +48,22 @@ func init() {
 }
 
 // Save saves the page to the database
-func (d *Document) save() error {
-	session := dbConnect()
+func (d *Document) save(db *DB) error {
+	session := db.sess.Clone()
 	defer session.Close()
 
-	collection := session.DB(db).C(documentCol)
+	collection := session.DB(db.name).C(documentCol)
 	_, err := collection.UpsertId(d.ID, d)
 	return err
 }
 
 // LoadPage loads retrieves the page data from the database
-func loadPage(idHex string) (*Document, error) {
+func loadPage(db *DB, idHex string) (*Document, error) {
 	id := bson.ObjectIdHex(idHex)
-	session := dbConnect()
+	session := db.sess.Clone()
 	defer session.Close()
 
-	collection := session.DB(db).C(documentCol)
+	collection := session.DB(db.name).C(documentCol)
 	d := &Document{}
 	err := collection.FindId(id).One(d)
 
@@ -73,10 +73,10 @@ func loadPage(idHex string) (*Document, error) {
 	return d, nil
 }
 
-func findAllDocs() (*[]Document, error) {
-	session := dbConnect()
+func findAllDocs(db *DB) (*[]Document, error) {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(documentCol)
+	collection := session.DB(db.name).C(documentCol)
 	var documents []Document
 
 	err := collection.Find(nil).Sort("title").All(&documents)
@@ -111,7 +111,7 @@ func IndexHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			return
 		}
 
-		folders, err := findFoldersAndDocuments(user)
+		folders, err := findFoldersAndDocuments(db, user)
 		if err != nil {
 			ErrorLogger.Print("Error getting users and folders on index page.\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -149,7 +149,7 @@ func ViewHandler(db *DB, rend *render.Render) http.HandlerFunc {
 		id := vars["id"]
 
 		var body template.HTML
-		d, err := loadPage(id)
+		d, err := loadPage(db, id)
 		if err != nil {
 			ErrorLogger.Print("Document not found. id: "+id, err)
 			s.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
@@ -213,7 +213,7 @@ func EditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 		}
 
 		if id != "" {
-			d, err = loadPage(id)
+			d, err = loadPage(db, id)
 			if err != nil {
 				ErrorLogger.Print("Page not found. id: "+id, err)
 				s.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
@@ -235,13 +235,13 @@ func EditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			}
 		}
 
-		users, err := findAllUsers()
+		users, err := findAllUsers(db)
 		if err != nil {
 			ErrorLogger.Print("Could not find all users. Document {id: "+id+"} ", err)
 			err = nil
 		}
 
-		folders, err := findAllFolders()
+		folders, err := findAllFolders(db)
 		if err != nil {
 			ErrorLogger.Print("Could not find all folders. Document {id: "+id+"} ", err)
 			err = nil
@@ -331,7 +331,7 @@ func SaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
 				d.Created = time.Now()
 			}
 
-			err = d.save()
+			err = d.save(db)
 
 			if err != nil {
 				ErrorLogger.Print("Could not save page id: "+d.ID.Hex()+" \n ", err)

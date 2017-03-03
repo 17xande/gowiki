@@ -22,6 +22,7 @@ var (
 // to make it simple to switch to a different database if necessary.
 type DB struct {
 	sess *mgo.Session
+	name string
 }
 
 // DBConf defines the database config options
@@ -35,15 +36,13 @@ type DBConf struct {
 // MongoWriter writes logs to the database
 type MongoWriter struct {
 	collection string
+	db         *DB
 }
 
-func init() {
-	Conf = &Config{}
-	Conf.Load()
-	db = Conf.Databases["app"].Name
-
-	ErrorLogger = log.New(&MongoWriter{"error"}, "", log.Lshortfile)
-	InfoLogger = log.New(&MongoWriter{"info"}, "", log.Lshortfile)
+// LoggerInit starts up the logs
+func LoggerInit(db *DB) {
+	ErrorLogger = log.New(&MongoWriter{"error", db}, "", log.Lshortfile)
+	InfoLogger = log.New(&MongoWriter{"info", db}, "", log.Lshortfile)
 }
 
 // NewDB connects to a database server and returns a database implementation
@@ -63,7 +62,10 @@ func NewDB(dbc DBConf) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DB{sess: s}, nil
+	return &DB{
+		sess: s,
+		name: dbc.Name,
+	}, nil
 }
 
 // Close releases the underlying connections. Always call this when done
@@ -89,7 +91,7 @@ func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 		}
 	}
 
-	sess := dbConnect()
+	sess := mw.db.sess.Clone()
 	defer sess.Close()
 
 	c := sess.DB(Conf.Databases["log"].Name).C(mw.collection)
@@ -105,23 +107,23 @@ func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func dbConnect() *mgo.Session {
-	dbc := Conf.Databases["app"]
+// func dbConnect() *mgo.Session {
+// 	dbc := Conf.Databases["app"]
 
-	di := mgo.DialInfo{
-		Addrs:    []string{dbc.Host},
-		Database: dbc.Name,
-		Username: dbc.Username,
-		Password: dbc.Password,
-	}
+// 	di := mgo.DialInfo{
+// 		Addrs:    []string{dbc.Host},
+// 		Database: dbc.Name,
+// 		Username: dbc.Username,
+// 		Password: dbc.Password,
+// 	}
 
-	// s, err := mgo.Dial(url)
-	session, err := mgo.DialWithInfo(&di)
+// 	// s, err := mgo.Dial(url)
+// 	session, err := mgo.DialWithInfo(&di)
 
-	if err != nil {
-		panic(err)
-	}
-	session.SetMode(mgo.Monotonic, true)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	session.SetMode(mgo.Monotonic, true)
 
-	return session
-}
+// 	return session
+// }

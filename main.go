@@ -42,10 +42,12 @@ func main() {
 		err = nil
 	}
 
+	models.LoggerInit(db)
+
 	mux := mux.NewRouter()
 	mux.HandleFunc("/", models.IndexHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/notfound", models.NotFoundHandler(rend)).Methods("GET")
-	mux.HandleFunc("/login", models.UserLoginHandler(rend))
+	mux.HandleFunc("/login", models.UserLoginHandler(db, rend))
 	mux.HandleFunc("/logout", models.UserLogoutHandler).Methods("GET")
 	mux.HandleFunc("/document/view/{id}", models.ViewHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/document/edit/{id}", models.EditHandler(db, rend)).Methods("GET")

@@ -30,7 +30,7 @@ const userCol = "users"
 // UserHandler handles any requests made to the user interface
 func UserHandler(db *DB, rend *render.Render) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		users, err := findAllUsers()
+		users, err := findAllUsers(db)
 		// Get the user session from the context.
 		ctx := r.Context()
 		s, ok := ctx.Value(sessKey).(*sessions.Session)
@@ -91,7 +91,7 @@ func UserEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 		id := vars["id"]
 
 		if len(id) > 0 {
-			editUser, err = findUser(id)
+			editUser, err = findUser(db, id)
 			exists = true
 
 			if err != nil {
@@ -166,7 +166,7 @@ func UserSaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
 				u.ID = bson.ObjectIdHex(id)
 			} else { // new user
 				// check if user already exists in the database
-				exists, err = u.exists()
+				exists, err = u.exists(db)
 				if err != nil {
 					ErrorLogger.Print("Error lookin for duplicate user: {name: "+u.Name+", email: "+u.Email+"}", err)
 					err = nil
@@ -193,7 +193,7 @@ func UserSaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
 				}
 			}
 
-			err = u.Save()
+			err = u.Save(db)
 			if err != nil {
 				ErrorLogger.Print("Could not save user. ", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -214,7 +214,7 @@ func UserSaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
 }
 
 // UserLoginHandler handles login attempts
-func UserLoginHandler(rend *render.Render) http.HandlerFunc {
+func UserLoginHandler(db *DB, rend *render.Render) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data := make(map[string]interface{})
 		var err error
@@ -249,7 +249,7 @@ func UserLoginHandler(rend *render.Render) http.HandlerFunc {
 				return
 			}
 
-			found, err = user.Authenticate()
+			found, err = user.Authenticate(db)
 			if err != nil {
 				ErrorLogger.Print("Problem while looking for user in database. {email: "+user.Email+"} ", err)
 				data["flashError"] = "Error trying to auntenticate your account. Please try again."
@@ -306,11 +306,11 @@ func getUserFromSession(s *sessions.Session) (user *User, ok bool) {
 	}, ok
 }
 
-func findAllUsers() (*[]User, error) {
-	session := dbConnect()
+func findAllUsers(db *DB) (*[]User, error) {
+	session := db.sess.Clone()
 	defer session.Close()
 
-	collection := session.DB(db).C(userCol)
+	collection := session.DB(db.name).C(userCol)
 	var users []User
 	err := collection.Find(nil).Sort("name").All(&users)
 	if err != nil {
@@ -320,11 +320,11 @@ func findAllUsers() (*[]User, error) {
 	return &users, nil
 }
 
-func findUser(idHex string) (*User, error) {
+func findUser(db *DB, idHex string) (*User, error) {
 	id := bson.ObjectIdHex(idHex)
-	session := dbConnect()
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(userCol)
+	collection := session.DB(db.name).C(userCol)
 	u := &User{}
 
 	err := collection.FindId(id).One(u)
@@ -335,10 +335,10 @@ func findUser(idHex string) (*User, error) {
 	return u, nil
 }
 
-func findUsers(ids *[]bson.ObjectId) (users *[]User, err error) {
-	session := dbConnect()
+func findUsers(db *DB, ids *[]bson.ObjectId) (users *[]User, err error) {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(userCol)
+	collection := session.DB(db.name).C(userCol)
 
 	query := bson.M{"_id": bson.M{"$in": ids}}
 	err = collection.Find(query).Sort("name").All(users)
@@ -346,10 +346,10 @@ func findUsers(ids *[]bson.ObjectId) (users *[]User, err error) {
 	return nil, err
 }
 
-func findNotUsers(ids *[]bson.ObjectId) (*[]User, error) {
-	session := dbConnect()
+func findNotUsers(db *DB, ids *[]bson.ObjectId) (*[]User, error) {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(userCol)
+	collection := session.DB(db.name).C(userCol)
 	users := &[]User{}
 
 	query := bson.M{"_id": bson.M{"$nin": ids}}
@@ -363,10 +363,10 @@ func findNotUsers(ids *[]bson.ObjectId) (*[]User, error) {
 }
 
 // Authenticate user based on email and password
-func (user *User) Authenticate() (found bool, err error) {
-	session := dbConnect()
+func (user *User) Authenticate(db *DB) (found bool, err error) {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(userCol)
+	collection := session.DB(db.name).C(userCol)
 
 	err = collection.Find(bson.M{
 		"email":    user.Email,
@@ -382,10 +382,10 @@ func (user *User) Authenticate() (found bool, err error) {
 }
 
 // Save or update the database record of the User
-func (user *User) Save() error {
-	session := dbConnect()
+func (user *User) Save(db *DB) error {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(userCol)
+	collection := session.DB(db.name).C(userCol)
 
 	update := bson.M{
 		"name":  user.Name,
@@ -414,10 +414,10 @@ func (user *User) hashPassword() (err error) {
 }
 
 // Checks if a user with this name or email address already exists.
-func (user *User) exists() (exists bool, err error) {
-	session := dbConnect()
+func (user *User) exists(db *DB) (exists bool, err error) {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(userCol)
+	collection := session.DB(db.name).C(userCol)
 	count := 0
 
 	query := bson.M{

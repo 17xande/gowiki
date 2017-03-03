@@ -61,7 +61,7 @@ func FolderHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			return
 		}
 
-		f, err = findFolder(id)
+		f, err = findFolder(db, id)
 		if err != nil {
 			ErrorLogger.Print("Error trying to find folder: {id: "+id+"}\n", err)
 			s.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
@@ -71,7 +71,7 @@ func FolderHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			return
 		}
 
-		err = f.findDocsForFolder()
+		err = f.findDocsForFolder(db)
 		if err != nil {
 			ErrorLogger.Print("Error trying to find document for folder: {id: "+id+"}\n", err)
 			s.AddFlash("Looks like something went wrong. If this error persists, please contact support", "error")
@@ -93,7 +93,7 @@ func FolderHandler(db *DB, rend *render.Render) http.HandlerFunc {
 // FoldersHandler handles the indexing of folders
 func FoldersHandler(db *DB, rend *render.Render) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		folders, err := findAllFolders()
+		folders, err := findAllFolders(db)
 		// Get the user session from the context.
 		ctx := r.Context()
 		s, ok := ctx.Value(sessKey).(*sessions.Session)
@@ -154,7 +154,7 @@ func FolderEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 		id := vars["id"]
 
 		if len(id) > 0 {
-			f, err = findFolder(id)
+			f, err = findFolder(db, id)
 			exists = true
 		}
 
@@ -165,7 +165,7 @@ func FolderEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 			err = nil
 		}
 
-		users, err = findAllUsers()
+		users, err = findAllUsers(db)
 
 		if err != nil {
 			ErrorLogger.Print("Error trying to find folder {id: "+id+"}", err)
@@ -231,7 +231,7 @@ func FolderSaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
 				f.ID = bson.NewObjectId()
 			}
 
-			err = f.save()
+			err = f.save(db)
 
 			if err != nil {
 				ErrorLogger.Print("Error saving folder to database. {id: "+id+"} ", err.Error())
@@ -277,7 +277,7 @@ func FolderPermissionsEditHandler(db *DB, rend *render.Render) http.HandlerFunc 
 			return
 		}
 
-		f, err = findFolder(id)
+		f, err = findFolder(db, id)
 		if err != nil {
 			ErrorLogger.Print("Error trying to find folder {id: "+id+"} ", err)
 			s.AddFlash(" Folder could not be retrieved.", "error")
@@ -286,7 +286,7 @@ func FolderPermissionsEditHandler(db *DB, rend *render.Render) http.HandlerFunc 
 			err = nil
 		}
 
-		err = f.getPermissions()
+		err = f.getPermissions(db)
 		if err != nil {
 			ErrorLogger.Print("Error trying to get permissions for folder {id: "+id+"} ", err)
 			s.AddFlash(" Folder permissions could not be retrieved.", "error")
@@ -303,7 +303,7 @@ func FolderPermissionsEditHandler(db *DB, rend *render.Render) http.HandlerFunc 
 			notUserIds[i] = perm.UserID
 		}
 
-		users, err := findNotUsers(&notUserIds)
+		users, err := findNotUsers(db, &notUserIds)
 		if err != nil {
 			ErrorLogger.Print("Error trying to find rest of users.", err)
 			s.AddFlash("Couldn't retrieve rest of users from database", "error")
@@ -369,7 +369,7 @@ func FolderPermissionsSaveHandler(db *DB, rend *render.Render) http.HandlerFunc 
 				return
 			}
 
-			err = permissionSave(p)
+			err = permissionSave(db, p)
 			if err != nil {
 				ErrorLogger.Print("Error saving folder permissions. {id: "+id+"}\n", err.Error())
 				s.AddFlash("Error saving folder permission.", "error")
@@ -383,10 +383,10 @@ func FolderPermissionsSaveHandler(db *DB, rend *render.Render) http.HandlerFunc 
 	}
 }
 
-func findAllFolders() (*[]Folder, error) {
-	session := dbConnect()
+func findAllFolders(db *DB) (*[]Folder, error) {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(col)
+	collection := session.DB(db.name).C(col)
 	var folders []Folder
 
 	err := collection.Find(nil).Sort("name").All(&folders)
@@ -397,11 +397,11 @@ func findAllFolders() (*[]Folder, error) {
 	return &folders, nil
 }
 
-func findFolder(idHex string) (*Folder, error) {
+func findFolder(db *DB, idHex string) (*Folder, error) {
 	id := bson.ObjectIdHex(idHex)
-	session := dbConnect()
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(col)
+	collection := session.DB(db.name).C(col)
 	f := &Folder{}
 
 	err := collection.FindId(id).One(f)
@@ -411,11 +411,11 @@ func findFolder(idHex string) (*Folder, error) {
 	return f, nil
 }
 
-func findFolderWithPermissions(id bson.ObjectId) (*Folder, error) {
+func findFolderWithPermissions(db *DB, id bson.ObjectId) (*Folder, error) {
 	var folder Folder
-	session := dbConnect()
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(col)
+	collection := session.DB(db.name).C(col)
 
 	query := []bson.M{
 		{
@@ -443,10 +443,10 @@ func findFolderWithPermissions(id bson.ObjectId) (*Folder, error) {
 	return &folder, err
 }
 
-func findFoldersAndDocuments(user *User) (*[]Folder, error) {
-	session := dbConnect()
-	defer session.Close()
-	collection := session.DB(db).C(col)
+func findFoldersAndDocuments(db *DB, user *User) (*[]Folder, error) {
+	s := db.sess.Clone()
+	defer s.Close()
+	collection := s.DB(db.name).C(col)
 	var folders []Folder
 
 	query := []bson.M{{
@@ -475,10 +475,10 @@ func findFoldersAndDocuments(user *User) (*[]Folder, error) {
 	return &folders, nil
 }
 
-func (f *Folder) getPermissions() error {
-	session := dbConnect()
+func (f *Folder) getPermissions(db *DB) error {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C("folderPermissions")
+	collection := session.DB(db.name).C("folderPermissions")
 
 	query := []bson.M{
 		{
@@ -498,10 +498,10 @@ func (f *Folder) getPermissions() error {
 	return err
 }
 
-func permissionSave(ps []Permission) error {
-	session := dbConnect()
+func permissionSave(db *DB, ps []Permission) error {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C("folderPermissions")
+	collection := session.DB(db.name).C("folderPermissions")
 	var update bson.M
 
 	b := collection.Bulk()
@@ -516,20 +516,20 @@ func permissionSave(ps []Permission) error {
 	return err
 }
 
-func (f *Folder) save() (err error) {
-	session := dbConnect()
+func (f *Folder) save(db *DB) (err error) {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(col)
+	collection := session.DB(db.name).C(col)
 
 	_, err = collection.UpsertId(f.ID, f)
 
 	return err
 }
 
-func (f *Folder) findDocsForFolder() error {
-	session := dbConnect()
+func (f *Folder) findDocsForFolder(db *DB) error {
+	session := db.sess.Clone()
 	defer session.Close()
-	collection := session.DB(db).C(documentCol)
+	collection := session.DB(db.name).C(documentCol)
 	var docs []Document
 
 	err := collection.Find(bson.M{"folderID": f.ID}).All(&docs)
