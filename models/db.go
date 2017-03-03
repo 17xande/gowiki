@@ -50,8 +50,16 @@ func init() {
 // for that connection. Call Close() on the returned value when done.
 func NewDB(dbc DBConf) (*DB, error) {
 	// url := "mongodb://" + dbc.Username + ":" + dbc.Password + "@" + dbc.Host + "/" + dbc.Name
-	url := "mongodb://" + dbc.Host + "/" + dbc.Name
-	s, err := mgo.Dial(url)
+
+	di := mgo.DialInfo{
+		Addrs:    []string{dbc.Host},
+		Database: dbc.Name,
+		Username: dbc.Username,
+		Password: dbc.Password,
+	}
+
+	// s, err := mgo.Dial(url)
+	s, err := mgo.DialWithInfo(&di)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +106,18 @@ func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 }
 
 func dbConnect() *mgo.Session {
-	session, err := mgo.Dial(Conf.Databases["app"].Host)
+	dbc := Conf.Databases["app"]
+
+	di := mgo.DialInfo{
+		Addrs:    []string{dbc.Host},
+		Database: dbc.Name,
+		Username: dbc.Username,
+		Password: dbc.Password,
+	}
+
+	// s, err := mgo.Dial(url)
+	session, err := mgo.DialWithInfo(&di)
+
 	if err != nil {
 		panic(err)
 	}

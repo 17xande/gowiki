@@ -36,7 +36,7 @@ db.createUser({
 db.users.insert({
   name: "admin",
   email: "admin@email.com",
-  password: "",
+  password: "password",
   level: 7,
   admin: true,
   tech: false

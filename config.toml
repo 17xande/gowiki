@@ -16,5 +16,5 @@
 [secrets]
 # user password encryption salt - Change this value to something unique
 passwordSalt = "passwordSalt"
-# cipher key for document encryption - Change this value to something unique
+# cypher key for document encryption - Change this value to something unique
 documentKey = "documentKey" 
