@@ -13,9 +13,6 @@ type Config struct {
 	Secrets   map[string]string `toml:"secrets"`
 }
 
-// Conf stores the apps configuration details
-var Conf *Config
-
 // Load loads the config from the config file
 func (c *Config) Load() (ok bool) {
 	ok = true

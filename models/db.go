@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	db string
 	// ErrorLogger logs errors into the database
 	ErrorLogger *log.Logger
 	// InfoLogger logs infos into the database
@@ -94,7 +93,7 @@ func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 	sess := mw.db.sess.Clone()
 	defer sess.Close()
 
-	c := sess.DB(Conf.Databases["log"].Name).C(mw.collection)
+	c := sess.DB(mw.db.name).C(mw.collection)
 	err = c.Insert(data)
 
 	if err != nil {

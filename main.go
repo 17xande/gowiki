@@ -38,11 +38,17 @@ func main() {
 	cfg.Load()
 	db, err := models.NewDB(cfg.Databases["app"])
 	if err != nil {
-		models.ErrorLogger.Print("Error creating DB instance.\n", err)
+		models.ErrorLogger.Print("Error creating app DB instance.\n", err)
 		err = nil
 	}
 
-	models.LoggerInit(db)
+	dbLog, err := models.NewDB(cfg.Databases["log"])
+	if err != nil {
+		models.ErrorLogger.Print("Error creating log DB instance.\n", err)
+		err = nil
+	}
+
+	models.LoggerInit(dbLog)
 
 	mux := mux.NewRouter()
 	mux.HandleFunc("/", models.IndexHandler(db, rend)).Methods("GET")
