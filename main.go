@@ -42,13 +42,7 @@ func main() {
 		err = nil
 	}
 
-	dbLog, err := models.NewDB(cfg.Databases["log"])
-	if err != nil {
-		models.ErrorLogger.Print("Error creating log DB instance.\n", err)
-		err = nil
-	}
-
-	models.LoggerInit(dbLog)
+	models.LoggerInit(db)
 
 	mux := mux.NewRouter()
 	mux.HandleFunc("/", models.IndexHandler(db, rend)).Methods("GET")
@@ -66,8 +60,8 @@ func main() {
 	mux.HandleFunc("/folder/edit/{id}", models.FolderEditHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/folder/edit/", models.FolderEditHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/folder/save/{id}", models.FolderSaveHandler(db, rend)).Methods("POST")
-	mux.HandleFunc("/folder/permissions", models.FolderPermissionsEditHandler(db, rend)).Methods("GET")
-	mux.HandleFunc("/folder/permissions/save", models.FolderPermissionsSaveHandler(db, rend)).Methods("POST")
+	mux.HandleFunc("/folder/permissions/{id}", models.FolderPermissionsEditHandler(db, rend)).Methods("GET")
+	mux.HandleFunc("/folder/permissions/save/{id}", models.FolderPermissionsSaveHandler(db, rend)).Methods("POST")
 
 	n := negroni.New()
 	recovery := negroni.NewRecovery()

@@ -93,7 +93,8 @@ func (mw *MongoWriter) Write(p []byte) (n int, err error) {
 	sess := mw.db.sess.Clone()
 	defer sess.Close()
 
-	c := sess.DB(mw.db.name).C(mw.collection)
+	// TODO: find a way to inject the dependency of this database name
+	c := sess.DB("scms_log").C(mw.collection)
 	err = c.Insert(data)
 
 	if err != nil {
