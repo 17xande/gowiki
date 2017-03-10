@@ -507,7 +507,14 @@ func permissionSave(db *DB, ps []Permission) error {
 	b := collection.Bulk()
 	b.Unordered()
 	for _, p := range ps {
-		update = bson.M{"folderId": p.ID, "userId": p.UserID}
+		if p.ID.Hex() == "" {
+			p.ID = bson.NewObjectId()
+		}
+
+		update = bson.M{
+			"folderId": p.FolderID,
+			"userId":   p.UserID,
+		}
 		b.Upsert(update, p)
 	}
 
