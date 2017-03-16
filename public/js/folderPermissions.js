@@ -50,6 +50,7 @@ function save(evt) {
 
   rows.forEach(element => {
     permission = {
+      id: element.getAttribute('data-permissionid'),
       folderId: folderId,
       userId: element.getAttribute('data-userid'),
       list: element.querySelector('input[data-permission=list]').checked,

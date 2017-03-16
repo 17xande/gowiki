@@ -20,14 +20,14 @@
       </thead>
       <tbody>
         {{ range $i, $perm := .folder.Permissions }}
-        <tr data-userId="{{ $perm.UserID.Hex }}">
+        <tr data-permissionId="{{ $perm.ID.Hex }}" data-userId="{{ $perm.UserID.Hex }}">
           <th scope="row"><a href="#">X</a></th>
           {{ with $user := index $perm.User 0 }}
           <td title="Level: {{ $user.Level }}{{ if $user.Admin }}&#13;Admin{{ end }}{{ if $user.Tech }}&#13;Tech{{ end }}">{{ $user.Name }}</td>
           {{ end }}
           <td><input type="checkbox" data-permission="list" {{ if $perm.List }}checked{{ end }}></td>
           <td><input type="checkbox" data-permission="read" {{ if $perm.Read }}checked{{ end }}></td>
-          <td><input type="checkbox" data-permission="write" {{ if $perm.Update }}checked{{ end }}></td>
+          <td><input type="checkbox" data-permission="write" {{ if $perm.Write }}checked{{ end }}></td>
           <td><input type="checkbox" data-permission="create" {{ if $perm.Create }}checked{{ end }}></td>
           <td><input type="checkbox" data-permission="delete" {{ if $perm.Delete }}checked{{ end }}></td>
         </tr>
