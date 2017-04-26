@@ -189,7 +189,8 @@ func FolderEditHandler(db *DB, rend *render.Render) http.HandlerFunc {
 func FolderSaveHandler(db *DB, rend *render.Render) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var f *Folder
-		_, id := path.Split(r.URL.Path)
+		vars := mux.Vars(r)
+		id := vars["id"]
 
 		// Get the user session from the context.
 		ctx := r.Context()
@@ -295,18 +296,10 @@ func FolderPermissionsEditHandler(db *DB, rend *render.Render) http.HandlerFunc 
 			err = nil
 		}
 
-		// Get all the userIDs out of any permissions for this folder.
-		iPerm := len(f.Permissions)
-		notUserIds := make([]bson.ObjectId, iPerm)
-
-		for i, perm := range f.Permissions {
-			notUserIds[i] = perm.UserID
-		}
-
-		users, err := findNotUsers(db, &notUserIds)
+		users, err := findAllUsers(db)
 		if err != nil {
-			ErrorLogger.Print("Error trying to find rest of users.", err)
-			s.AddFlash("Couldn't retrieve rest of users from database", "error")
+			ErrorLogger.Print("Error trying to find all users.", err)
+			s.AddFlash("Couldn't retrieve all users from database", "error")
 			s.Save(r, w)
 			err = nil
 		}
@@ -397,6 +390,21 @@ func findAllFolders(db *DB) (*[]Folder, error) {
 	return &folders, nil
 }
 
+func findAllPermittedFolders(db *DB) (*[]Folder, error) {
+	session := db.sess.Clone()
+	defer session.Close()
+	collection := session.DB(db.name).C(col)
+	var folders []Folder
+	q := bson.M{}
+
+	err := collection.Find(q).Sort("name").All(&folders)
+	if err != nil {
+		return nil, err
+	}
+
+	return &folders, nil
+}
+
 func findFolder(db *DB, idHex string) (*Folder, error) {
 	id := bson.ObjectIdHex(idHex)
 	session := db.sess.Clone()
@@ -473,54 +481,6 @@ func findFoldersAndDocuments(db *DB, user *User) (*[]Folder, error) {
 	}
 
 	return &folders, nil
-}
-
-func (f *Folder) getPermissions(db *DB) error {
-	session := db.sess.Clone()
-	defer session.Close()
-	collection := session.DB(db.name).C("folderPermissions")
-
-	query := []bson.M{
-		{
-			"$lookup": bson.M{
-				"from":         "users",
-				"localField":   "userId",
-				"foreignField": "_id",
-				"as":           "user",
-			},
-		},
-		{"$match": bson.M{"folderId": f.ID}},
-	}
-
-	pipe := collection.Pipe(query)
-	err := pipe.All(&f.Permissions)
-
-	return err
-}
-
-func permissionSave(db *DB, ps []Permission) error {
-	session := db.sess.Clone()
-	defer session.Close()
-	collection := session.DB(db.name).C("folderPermissions")
-	var update bson.M
-
-	b := collection.Bulk()
-	b.Unordered()
-	for _, p := range ps {
-		if p.ID.Hex() == "" {
-			p.ID = bson.NewObjectId()
-		}
-
-		update = bson.M{
-			"folderId": p.FolderID,
-			"userId":   p.UserID,
-		}
-		b.Upsert(update, p)
-	}
-
-	_, err := b.Run()
-
-	return err
 }
 
 func (f *Folder) save(db *DB) (err error) {

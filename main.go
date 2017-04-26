@@ -51,7 +51,7 @@ func main() {
 	mux.HandleFunc("/logout", models.UserLogoutHandler).Methods("GET")
 	mux.HandleFunc("/document/view/{id}", models.ViewHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/document/edit/{id}", models.EditHandler(db, rend)).Methods("GET")
-	mux.HandleFunc("/save", models.SaveHandler(db, rend)).Methods("POST")
+	mux.HandleFunc("/save/{id}", models.SaveHandler(db, rend)).Methods("POST")
 	mux.HandleFunc("/users/", models.UserHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/user/edit/{id}", models.UserEditHandler(db, rend)).Methods("GET")
 	mux.HandleFunc("/user/save/{id}", models.UserSaveHandler(db, rend)).Methods("POST")

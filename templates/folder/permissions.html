@@ -21,7 +21,7 @@
       <tbody>
         {{ range $i, $perm := .folder.Permissions }}
         <tr data-permissionId="{{ $perm.ID.Hex }}" data-userId="{{ $perm.UserID.Hex }}">
-          <th scope="row"><a href="#">X</a></th>
+          <th scope="row"><a href="#" title="Remove permission" class="delete">X</a></th>
           {{ with $user := index $perm.User 0 }}
           <td title="Level: {{ $user.Level }}{{ if $user.Admin }}&#13;Admin{{ end }}{{ if $user.Tech }}&#13;Tech{{ end }}">{{ $user.Name }}</td>
           {{ end }}
@@ -37,7 +37,7 @@
 
     <template id="tmpUserRow">
       <tr data-userid="">
-        <th scope="row"><a href="#">X</a></th>
+        <th scope="row"><a href="#" title="Remove permission" class="delete">X</a></th>
         <td title="Level:"></td>
         <td><input type="checkbox" data-permission="list" checked></td>
         <td><input type="checkbox" data-permission="read" checked></td>

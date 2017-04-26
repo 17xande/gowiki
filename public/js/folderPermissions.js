@@ -1,4 +1,6 @@
-chosenUsers = $('#slcUsers').chosen({
+"use strict";
+// Initialise Chosen Select
+let chosenUsers = $('#slcUsers').chosen({
   no_results_text: "No users found"
 });
 
@@ -19,6 +21,12 @@ let userRow = {
 
 let userData = JSON.parse(scrUserPermissions.innerText)
 
+tbody.querySelectorAll('a.delete').forEach(e => {
+  e.addEventListener('click', deleteRow);
+});
+
+frmFolderPermissions.addEventListener('submit', save, true);
+
 btnAdd.addEventListener('click', evt => {
   let user = findUser(slcUsers.value);
 
@@ -35,13 +43,11 @@ btnAdd.addEventListener('click', evt => {
   userRow.tdName.innerText = user.name;
   
   let clone = document.importNode(tr, true);
-  clone.querySelector('th>a').addEventListener('click', deleteRow);
+  clone.querySelector('a.delete').addEventListener('click', deleteRow);
   tbody.appendChild(clone);
   slcUsers.options[slcUsers.selectedIndex].remove()
   chosenUsers.trigger('chosen:updated');
 });
-
-frmFolderPermissions.addEventListener('submit', save, true);
 
 function save(evt) {
   let rows = tbody.querySelectorAll('tr');
